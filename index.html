@@ -14,9 +14,9 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <style>
-        /* Definición de la paleta de colores y variables CSS (Solo Light Mode) */
+        /* Definición de la paleta de colores y variables CSS (Modo Claro/CLP) */
         :root {
-            --color-indigo-900: #1d2a4e; /* Primario/Encabezado - Morado oscuro/azul oscuro para texto de alto contraste */
+            --color-indigo-900: #1d2a4e; /* Primario/Encabezado - Morado oscuro/azul oscuro */
             --color-cyan-500: #00ade1; /* Secundario/Borde */
             --color-amber-400: #ffcd22; /* Advertencia */
             --color-green-500: #80b122; /* Éxito */
@@ -30,12 +30,17 @@
         body {
             font-family: 'Lexend', sans-serif;
             background-color: var(--color-gray-200);
-            color: var(--color-indigo-900);
+            color: #333; /* Color de texto base, aunque se sobrescribe por las clases */
         }
 
         /* Estilo para texto de alto contraste en modo claro: Usa el color índigo oscuro de la marca */
         .text-dark-brand {
             color: var(--color-indigo-900); 
+        }
+
+        /* Títulos principales: Asegurar color de marca en modo claro */
+        h1, h2, h3 {
+            color: var(--color-indigo-900);
         }
 
         /* Estilo para las tarjetas principales */
@@ -181,7 +186,6 @@
             border-style: solid;
             border-color: var(--color-indigo-900) transparent transparent transparent;
         }
-
     </style>
 </head>
 <body class="p-4 sm:p-8">
@@ -211,18 +215,6 @@
                         <h2 class="text-2xl font-semibold border-b pb-2 border-gray-200" style="color: var(--color-indigo-900);">Parámetros de la simulación</h2>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Ingreso Mensual -->
-                            <div>
-                                <label for="ingresoMensual" class="block font-medium mb-1 text-dark-brand flex items-center">
-                                    Ingreso mensual (neto, \$)
-                                    <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
-                                        <i class="ph ph-info text-base align-middle"></i>
-                                        <span class="tooltip-content" role="tooltip">Monto fijo que recibes cada mes después de descuentos. Se reparte entre los tres fondos según 2-1-1.</span>
-                                    </span>
-                                </label>
-                                <input type="number" id="ingresoMensual" data-testid="input-ingreso" min="0" value="1000" class="input-field" required>
-                                <p id="error-ingresoMensual" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Ingreso debe ser $\ge 0$.</p>
-                            </div>
                             
                             <!-- Saldo Inicial -->
                             <div>
@@ -235,6 +227,19 @@
                                 </label>
                                 <input type="number" id="saldoInicial" min="0" value="0" class="input-field" required>
                                 <p id="error-saldoInicial" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Saldo inicial debe ser $\ge 0$.</p>
+                            </div>
+
+                            <!-- Aporte Mensual -->
+                            <div>
+                                <label for="aporteMensual" class="block font-medium mb-1 text-dark-brand flex items-center">
+                                    Aporte mensual (\$)
+                                    <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
+                                        <i class="ph ph-info text-base align-middle"></i>
+                                        <span class="tooltip-content" role="tooltip">Dinero fijo que sumas cada mes a tu inversión total. Se reparte entre los tres fondos según 2-1-1.</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="aporteMensual" data-testid="input-ingreso" min="0" value="100000" class="input-field" required>
+                                <p id="error-aporteMensual" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Aporte debe ser $\ge 0$.</p>
                             </div>
                             
                             <!-- Periodo (Meses) -->
@@ -262,19 +267,6 @@
                                 <input type="number" id="interesMensual" min="0" max="100" step="0.01" value="0.5" class="input-field" required>
                                 <p id="error-interesMensual" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Interés debe ser $\ge 0$ y $\le 100$.</p>
                             </div>
-                        </div>
-
-                        <!-- Aporte Adicional Mensual -->
-                        <div>
-                            <label for="aporteAdicional" class="block font-medium mb-1 text-dark-brand flex items-center">
-                                Aporte mensual adicional (total, \$)
-                                <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
-                                    <i class="ph ph-info text-base align-middle"></i>
-                                    <span class="tooltip-content" role="tooltip">Dinero extra que sumas cada mes, además de tu ingreso mensual fijo.</span>
-                                </span>
-                            </label>
-                            <input type="number" id="aporteAdicional" min="0" value="0" class="input-field" required>
-                            <p id="error-aporteAdicional" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Aporte debe ser $\ge 0$.</p>
                         </div>
                     </div>
 
@@ -319,7 +311,7 @@
                 <!-- Título del resumen -->
                 <h2 class="text-xl font-bold" style="color: var(--color-indigo-900);">Totales acumulados (final)</h2>
                 <div id="totales-acumulados" class="space-y-3">
-                    <p class="text-lg font-medium text-gray-500">Cargando...</p>
+                    <p class="text-lg font-medium text-dark-brand">Cargando...</p>
                 </div>
             </div>
 
@@ -367,11 +359,10 @@
         const STORAGE_KEY = 'simulador211:v1';
         const DEFAULT_STATE = {
             general: {
-                ingresoMensual: 1000,
                 saldoInicial: 0,
                 periodoMeses: 24,
                 interesMensual: 0.5, // 0.5%
-                aporteAdicional: 0,
+                aporteMensual: 100000, // Reemplaza 'ingresoMensual' y 'aporteAdicional'
             },
             funds: [
                 { id: 'emergencia', name: 'Emergencia', percentage: 50, color: '#1d2a4e' }, // Indigo-900
@@ -397,17 +388,19 @@
         // --- UTILIDADES ---
 
         /**
-         * @description Formatea un número a formato de moneda (dólares), permitiendo especificar decimales.
+         * @description Formatea un número a formato de moneda chilena (CLP), permitiendo especificar decimales.
          * @param {number} amount
-         * @param {number} decimals - Número de decimales a mostrar. Por defecto es 2.
+         * @param {number} decimals - Número de decimales a mostrar. Por defecto es 0 (pesos chilenos).
          * @returns {string}
          */
-        const formatCurrency = (amount, decimals = 2) => {
+        const formatCurrency = (amount, decimals = 0) => {
             if (typeof amount !== 'number' || isNaN(amount)) return '$0';
-            const fixedDecimals = Math.max(0, decimals); // Asegura que no sea negativo
-            return new Intl.NumberFormat('es-US', {
+            const fixedDecimals = Math.max(0, decimals);
+            
+            // Usamos 'es-CL' para formato chileno: punto como separador de miles, coma como decimal.
+            return new Intl.NumberFormat('es-CL', {
                 style: 'currency',
-                currency: 'USD',
+                currency: 'CLP',
                 minimumFractionDigits: fixedDecimals,
                 maximumFractionDigits: fixedDecimals,
             }).format(amount);
@@ -485,6 +478,14 @@
                 results: null // Siempre reiniciamos los resultados al cargar
             };
             
+            // Asigna los valores al input del Aporte Mensual correctamente si se cargó desde storage
+            if (loadedState && loadedState.general.aporteMensual !== undefined) {
+                state.general.aporteMensual = loadedState.general.aporteMensual;
+            } else if (loadedState && loadedState.general.ingresoMensual !== undefined) {
+                 // Si cargamos una versión antigua que tenía ingresoMensual, lo usamos como AporteMensual
+                state.general.aporteMensual = loadedState.general.ingresoMensual + (loadedState.general.aporteAdicional || 0);
+            }
+
             renderForm();
             renderSummary();
             // No recalcular automáticamente, esperar a la acción del usuario o load()
@@ -556,7 +557,7 @@
 
         /**
          * @description Maneja el cambio en un input de parámetro general.
-         * @param {string} key - Clave del parámetro general (ej. 'ingresoMensual').
+         * @param {string} key - Clave del parámetro general (ej. 'aporteMensual').
          * @param {string} value - Nuevo valor del input (como string).
          */
         const handleGeneralInputChange = (key, value) => {
@@ -682,7 +683,7 @@
                 return;
             }
 
-            const { ingresoMensual, saldoInicial, periodoMeses, interesMensual, aporteAdicional } = state.general;
+            const { saldoInicial, periodoMeses, interesMensual, aporteMensual } = state.general;
             const funds = state.funds;
 
             // Inicialización de resultados
@@ -693,8 +694,10 @@
                 balance: saldoInicial * (f.percentage / 100), // Distribución inicial del saldo
             }));
 
-            // Tasa de interés mensual (decimal)
-            const monthlyRate = interesMensual / 100 / 100;
+            // Tasa de interés mensual (decimal): Corregido de /100/100 a solo /100. Ej: 0.5% -> 0.005
+            const monthlyRate = interesMensual / 100;
+            let totalCapitalInvested = saldoInicial; // Capital inicial
+            let totalInterestAccumulated = 0;
 
             // Loop de simulación mes a mes
             for (let month = 1; month <= periodoMeses; month++) {
@@ -702,16 +705,19 @@
                     month: month,
                     fundBalances: {},
                     totalBalance: 0,
-                    totalInvestment: 0,
-                    totalInterest: 0,
+                    totalInvestment: 0, // Capital total invertido hasta este mes
+                    monthlyInterestGain: 0, // Interés ganado solo en este mes
                 };
+
+                // Acumular el aporte de este mes al capital total
+                totalCapitalInvested += aporteMensual;
 
                 currentBalances.forEach(fund => {
                     const fundConfig = funds.find(f => f.id === fund.id);
                     const percentage = fundConfig.percentage / 100;
 
-                    // 1. Aporte mensual (Ingreso + Aporte Adicional)
-                    const monthlyDeposit = (ingresoMensual + aporteAdicional) * percentage;
+                    // 1. Aporte mensual distribuido
+                    const monthlyDeposit = aporteMensual * percentage;
                     
                     // 2. Intereses Ganados (sobre el saldo actual)
                     const monthlyInterest = fund.balance * monthlyRate;
@@ -719,18 +725,21 @@
                     // 3. Nuevo Saldo
                     fund.balance = fund.balance + monthlyDeposit + monthlyInterest;
 
-                    // Almacenar el snapshot del mes
+                    // Acumular métricas
                     monthlySnapshot.fundBalances[fund.id] = fund.balance;
                     monthlySnapshot.totalBalance += fund.balance;
-                    monthlySnapshot.totalInvestment += monthlyDeposit;
-                    monthlySnapshot.totalInterest += monthlyInterest;
+                    monthlySnapshot.monthlyInterestGain += monthlyInterest;
                 });
+                
+                // Actualizar total invertido y total interés acumulado
+                monthlySnapshot.totalInvestment = totalCapitalInvested;
+                totalInterestAccumulated += monthlySnapshot.monthlyInterestGain;
                 
                 simulationResults.push(monthlySnapshot);
             }
 
             state.results = simulationResults;
-            saveState(); // Guardar el estado, aunque 'results' se purga en 'load'
+            saveState(); 
 
             // Renderizar los resultados
             renderResults();
@@ -782,16 +791,24 @@
 
             const finalSnapshot = state.results[state.results.length - 1];
             const totalFinal = finalSnapshot.totalBalance;
-            const totalAporte = (state.general.ingresoMensual + state.general.aporteAdicional) * state.general.periodoMeses + state.general.saldoInicial;
+            const totalAporte = finalSnapshot.totalInvestment; // Capital total aportado (inicial + mensual)
             const totalInteres = totalFinal - totalAporte;
+            const growthPercentage = totalAporte > 0 ? (totalInteres / totalAporte) * 100 : 0;
 
-            // Se usa formatCurrency(..., 0) para quitar decimales al Total Final y Intereses Ganados
+            // Usamos formatCurrency(..., 0) para quitar decimales (pesos chilenos)
             summaryDiv.innerHTML = `
                 <div class="space-y-3">
                     <p class="text-2xl font-bold">Total final: <span class="text-green-500">${formatCurrency(totalFinal, 0)}</span></p>
-                    <div class="text-sm text-dark-brand">
-                        <p class="flex justify-between"><span>Aporte total (capital):</span> <span class="font-medium">${formatCurrency(totalAporte)}</span></p>
-                        <p class="flex justify-between"><span>Intereses ganados:</span> <span class="font-medium text-green-500">${formatCurrency(totalInteres, 0)}</span></p>
+                    <div class="text-sm text-dark-brand space-y-1">
+                        <p class="flex justify-between"><span>Capital aportado:</span> <span class="font-medium">${formatCurrency(totalAporte, 0)}</span></p>
+                        <p class="flex justify-between">
+                            <span>Intereses ganados:</span> 
+                            <span class="font-bold text-green-500">${formatCurrency(totalInteres, 0)}</span>
+                        </p>
+                        <p class="flex justify-between pt-1 border-t border-gray-200">
+                            <span>Crecimiento total:</span> 
+                            <span class="font-bold text-lg ${growthPercentage >= 0 ? 'text-green-500' : 'text-red-600'}">${growthPercentage.toFixed(2)}%</span>
+                        </p>
                     </div>
                 </div>
 
@@ -868,9 +885,9 @@
                                 if (label) {
                                     label += ': ';
                                 }
-                                // Mantenemos 2 decimales en el tooltip mensual para mayor precisión
+                                // Mantenemos 0 decimales en el tooltip (CLP)
                                 if (context.parsed.y !== null) {
-                                    label += formatCurrency(context.parsed.y); 
+                                    label += formatCurrency(context.parsed.y, 0); 
                                 }
                                 return label;
                             }
@@ -926,8 +943,10 @@
             state.funds.forEach(fund => {
                 htmlHead += `<th>${fund.name}</th>`;
             });
+            htmlHead += '<th>Total invertido</th>'; // Nueva columna: Capital
+            htmlHead += '<th>Ganancia del periodo (\$)</th>'; // Nueva columna: Interés mensual
             htmlHead += '<th>Total acumulado</th>';
-            tableHead.innerHTML = htmlHead;
+            tableHead.innerHTML = `<tr>${htmlHead}</tr>`;
 
             // 2. Cuerpo de la Tabla (Filas)
             state.results.forEach(snapshot => {
@@ -939,10 +958,17 @@
                 
                 state.funds.forEach(fund => {
                     const balance = snapshot.fundBalances[fund.id] || 0;
-                    htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${formatCurrency(balance)}</td>`;
+                    htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${formatCurrency(balance, 0)}</td>`;
                 });
                 
-                htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm font-bold text-green-600">${formatCurrency(snapshot.totalBalance, 0)}</td>`;
+                // Columna Total Invertido (Capital)
+                htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm text-indigo-900 font-medium">${formatCurrency(snapshot.totalInvestment, 0)}</td>`;
+
+                // Columna Ganancia del Periodo (Interés)
+                htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm text-green-600">${formatCurrency(snapshot.monthlyInterestGain, 0)}</td>`;
+                
+                // Columna Total Acumulado
+                htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm font-bold text-red-600">${formatCurrency(snapshot.totalBalance, 0)}</td>`;
                 
                 row.innerHTML = htmlRow;
                 tableBody.appendChild(row);
@@ -965,19 +991,23 @@
             // 1. Encabezados
             const headers = ['Mes'];
             state.funds.forEach(fund => headers.push(fund.name));
-            headers.push('Total acumulado');
-            csv += headers.join(',') + '\n';
+            headers.push('Total Invertido (Capital)');
+            headers.push('Ganancia del Periodo (Interes)');
+            headers.push('Total Acumulado');
+            csv += headers.join(';') + '\n'; // Usamos ';' como separador para compatibilidad con Excel chileno
 
             // 2. Filas de datos
             state.results.forEach(snapshot => {
                 const rowData = [snapshot.month];
                 state.funds.forEach(fund => {
                     const balance = snapshot.fundBalances[fund.id] || 0;
-                    // Eliminar comas de formato de moneda para CSV (usar solo punto decimal)
-                    rowData.push(balance.toFixed(2).replace(/,/g, ''));
+                    // Usamos toFixed(2) para asegurar el formato numérico sin separadores de miles
+                    rowData.push(balance.toFixed(0)); // Sin decimales en el valor puro
                 });
-                rowData.push(snapshot.totalBalance.toFixed(2).replace(/,/g, ''));
-                csv += rowData.join(',') + '\n';
+                rowData.push(snapshot.totalInvestment.toFixed(0));
+                rowData.push(snapshot.monthlyInterestGain.toFixed(0));
+                rowData.push(snapshot.totalBalance.toFixed(0));
+                csv += rowData.join(';') + '\n';
             });
 
             // 3. Crear y descargar el archivo
