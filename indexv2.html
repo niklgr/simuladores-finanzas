@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Ahorro 2-1-1</title>
+    <!-- Carga de Tailwind CSS para utilidades de diseño y responsividad -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de la fuente Lexend de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Carga de Chart.js para el gráfico de evolución -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Carga de Phosphor Icons para iconos -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        /* Definición de la paleta de colores y variables CSS (Modo Claro/CLP) */
+        :root {
+            --color-indigo-900: #1d2a4e; /* Primario/Encabezado - Morado oscuro/azul oscuro */
+            --color-cyan-500: #00ade1; /* Secundario/Borde */
+            --color-amber-400: #ffcd22; /* Advertencia */
+            --color-green-500: #80b122; /* Éxito */
+            --color-gray-200: #ececec; /* Fondo */
+            --color-red-600: #da3728; /* Error */
+            --color-indigo-500: #575e9a; /* Hover */
+            --color-surface-light: #ffffff;
+        }
+
+        /* Estilos base con la fuente Lexend */
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: var(--color-gray-200);
+            color: #333; /* Color de texto base, aunque se sobrescribe por las clases */
+        }
+
+        /* Estilo para texto de alto contraste en modo claro: Usa el color índigo oscuro de la marca */
+        .text-dark-brand {
+            color: var(--color-indigo-900); 
+        }
+
+        /* Títulos principales: Asegurar color de marca en modo claro */
+        h1, h2, h3 {
+            color: var(--color-indigo-900);
+        }
+
+        /* Estilo para las tarjetas principales */
+        .card {
+            background-color: var(--color-surface-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Estilo para el input de texto/número */
+        .input-field {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            color: #333; /* Texto del input siempre oscuro */
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-indigo-900);
+            box-shadow: 0 0 0 1px var(--color-indigo-900);
+        }
+
+        /* Estilo del Botón Primario */
+        .btn-primary {
+            background-color: var(--color-indigo-900);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-indigo-500);
+            transform: translateY(-1px);
+        }
+
+        /* Estilo del Botón Secundario (Outline) */
+        .btn-secondary-outline {
+            color: var(--color-indigo-900);
+            border: 2px solid var(--color-cyan-500);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            background-color: transparent;
+            transition: background-color 0.2s, color 0.2s, transform 0.1s;
+        }
+
+        .btn-secondary-outline:hover {
+            background-color: rgba(0, 173, 225, 0.1); /* 10% alpha de cyan-500 */
+            transform: translateY(-1px);
+        }
+
+        /* Estilos para Mensajes de Validación/Estado */
+        .msg-error {
+            background-color: rgba(218, 55, 40, 0.1); /* 10% alpha de red-600 */
+            color: var(--color-red-600);
+            border: 1px solid var(--color-red-600);
+        }
+
+        .msg-success {
+            background-color: rgba(128, 177, 34, 0.1); /* 10% alpha de green-500 */
+            color: var(--color-green-500);
+            border: 1px solid var(--color-green-500);
+        }
+
+        .msg-warning {
+            background-color: rgba(255, 205, 34, 0.1); /* 10% alpha de amber-400 */
+            color: var(--color-amber-400);
+            border: 1px solid var(--color-amber-400);
+        }
+
+        /* Estilo del Resumen Fijo (Fixed Summary) */
+        #fixed-summary {
+            position: sticky;
+            top: 1rem;
+            z-index: 10;
+        }
+
+        /* Colores para el gráfico (Chart.js) */
+        .chart-color-1 { color: var(--color-indigo-900); }
+        .chart-color-2 { color: var(--color-cyan-500); }
+        .chart-color-3 { color: var(--color-green-500); }
+        
+        /* Estilo para ocultar contenido visualmente pero mantenerlo accesible para lectores de pantalla */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        /* --- Tooltip Styles --- */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .tooltip-content {
+            visibility: hidden;
+            background-color: var(--color-indigo-900);
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 50;
+            bottom: 125%; /* Position above the icon */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: 400;
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.4;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            white-space: normal; /* Allow wrapping */
+        }
+
+        .tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Arrow */
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--color-indigo-900) transparent transparent transparent;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+    <div class="max-w-7xl mx-auto">
+
+        <!-- Encabezado -->
+        <header class="mb-8 flex justify-between items-start">
+            <div>
+                <!-- Título principal -->
+                <h1 class="text-3xl sm:text-4xl font-bold" style="color: var(--color-indigo-900);">Simulador de ahorro 2-1-1</h1>
+                <!-- Descripción en color morado oscuro -->
+                <p class="mt-2 text-lg sm:text-xl font-normal text-dark-brand">
+                    Planifica tu futuro distribuyendo tus ingresos en tres fondos estratégicos: Emergencia, corto plazo y largo plazo.
+                </p>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Columna de Formularios e Inputs (Izquierda) -->
+            <div class="lg:col-span-2">
+                <form id="simulador-form" class="space-y-6">
+
+                    <!-- SECCIÓN: Parámetros Generales -->
+                    <div class="card space-y-4">
+                        <!-- Título de sección -->
+                        <h2 class="text-2xl font-semibold border-b pb-2 border-gray-200" style="color: var(--color-indigo-900);">Parámetros de la simulación</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            <!-- Saldo Inicial -->
+                            <div>
+                                <label for="saldoInicial" class="block font-medium mb-1 text-dark-brand flex items-center">
+                                    Saldo inicial total (\$)
+                                    <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
+                                        <i class="ph ph-info text-base align-middle"></i>
+                                        <span class="tooltip-content" role="tooltip">Ahorro que ya tienes al comenzar. Se distribuye automáticamente entre los fondos según 2-1-1.</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="saldoInicial" min="0" value="0" class="input-field" required>
+                                <p id="error-saldoInicial" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Saldo inicial debe ser $\ge 0$.</p>
+                            </div>
+
+                            <!-- Aporte Mensual -->
+                            <div>
+                                <label for="aporteMensual" class="block font-medium mb-1 text-dark-brand flex items-center">
+                                    Aporte mensual (\$)
+                                    <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
+                                        <i class="ph ph-info text-base align-middle"></i>
+                                        <span class="tooltip-content" role="tooltip">Dinero fijo que sumas cada mes a tu inversión total. Se reparte entre los tres fondos según 2-1-1.</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="aporteMensual" data-testid="input-ingreso" min="0" value="100000" class="input-field" required>
+                                <p id="error-aporteMensual" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Aporte debe ser $\ge 0$.</p>
+                            </div>
+                            
+                            <!-- Periodo (Meses) -->
+                            <div>
+                                <label for="periodoMeses" class="block font-medium mb-1 text-dark-brand flex items-center">
+                                    Periodo a simular (meses)
+                                    <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
+                                        <i class="ph ph-info text-base align-middle"></i>
+                                        <span class="tooltip-content" role="tooltip">Cantidad de meses que quieres proyectar tu ahorro (entre 1 y 120).</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="periodoMeses" min="1" max="120" value="24" class="input-field" required>
+                                <p id="error-periodoMeses" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Mínimo 1 mes.</p>
+                            </div>
+                            
+                            <!-- Interés Mensual -->
+                            <div>
+                                <label for="interesMensual" class="block font-medium mb-1 text-dark-brand flex items-center">
+                                    Interés mensual promedio (\%)
+                                    <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
+                                        <i class="ph ph-info text-base align-middle"></i>
+                                        <span class="tooltip-content" role="tooltip">Rendimiento estimado mensual que se aplica sobre los saldos acumulados. Ej.: $0,5$ = $0.5$ % mensual.</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="interesMensual" min="0" max="100" step="0.01" value="0.5" class="input-field" required>
+                                <p id="error-interesMensual" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Interés debe ser $\ge 0$ y $\le 100$.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN: Configuración de Fondos -->
+                    <fieldset class="card space-y-4">
+                        <legend class="sr-only">Configuración de fondos (Distribución actual 2-1-1)</legend>
+                        <!-- Título de sección -->
+                        <h2 class="text-2xl font-semibold border-b pb-2 border-gray-200" style="color: var(--color-indigo-900);">Distribución actual (2-1-1)</h2>
+                        <p class="text-sm italic text-dark-brand">Personaliza los nombres y porcentajes de tus fondos de ahorro.</p>
+
+                        <div id="funds-container" class="space-y-4">
+                            <!-- Los inputs de los fondos se renderizarán aquí por JavaScript -->
+                        </div>
+                        
+                        <p id="error-porcentajes" class="p-2 rounded-md msg-error hidden" aria-live="polite">
+                            <i class="ph-fill ph-warning text-lg mr-1"></i>
+                            Los porcentajes deben sumar 100% para poder calcular.
+                        </p>
+                    </fieldset>
+
+                    <!-- SECCIÓN: Botones de Acción -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                        <button type="button" id="boton-calcular" data-testid="boton-calcular" class="btn-primary flex-1">
+                            <i class="ph-bold ph-calculator mr-2"></i> Calcular simulación
+                        </button>
+                        <button type="button" id="boton-exportar" data-testid="boton-exportar" class="btn-secondary-outline sm:w-auto">
+                            <i class="ph-bold ph-export mr-2"></i> Exportar CSV
+                        </button>
+                        <button type="button" id="boton-reiniciar" class="btn-secondary-outline sm:w-auto">
+                            <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i> Reiniciar
+                        </button>
+                    </div>
+
+                    <!-- Mensajes de Estado -->
+                    <div id="status-message" class="p-3 rounded-md hidden" role="status" aria-live="assertive"></div>
+
+                </form>
+            </div>
+
+            <!-- Columna de Resumen (Derecha, Fija) -->
+            <div id="fixed-summary" class="lg:col-span-1 h-fit card space-y-4">
+                <!-- Título del resumen -->
+                <h2 class="text-xl font-bold" style="color: var(--color-indigo-900);">Totales acumulados (final)</h2>
+                <div id="totales-acumulados" class="space-y-3">
+                    <p class="text-lg font-medium text-dark-brand">Cargando...</p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- SECCIÓN: Resultados (Gráfico y Tabla) -->
+        <section id="resultados" class="mt-8 space-y-8 hidden">
+            
+            <!-- Gráfico de Evolución Mensual -->
+            <div class="card">
+                <!-- Título del gráfico -->
+                <h2 class="text-2xl font-semibold border-b pb-2 mb-4 border-gray-200" style="color: var(--color-indigo-900);">Gráfico de evolución mensual</h2>
+                <div class="p-2" data-testid="grafico">
+                    <canvas id="evolution-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabla de Resultados Mensuales -->
+            <div class="card overflow-x-auto">
+                <!-- Título de la tabla -->
+                <h2 class="text-2xl font-semibold border-b pb-2 mb-4 border-gray-200" style="color: var(--color-indigo-900);">Tabla de resultados mensuales</h2>
+                <div data-testid="tabla-resultados" class="overflow-x-auto">
+                    <table id="results-table" class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <!-- Encabezados de la tabla se renderizan aquí por JavaScript -->
+                        </thead>
+                        <tbody class="divide-y divide-gray-100" id="results-table-body">
+                            <!-- Filas de la tabla se renderizarán aquí por JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- Lógica de JavaScript -->
+    <script>
+        // Declaración de variables globales
+        let state = {};
+        let evolutionChart = null;
+
+        // --- CONSTANTES Y CONFIGURACIÓN INICIAL ---
+        const STORAGE_KEY = 'simulador211:v1';
+        const DEFAULT_STATE = {
+            general: {
+                saldoInicial: 0,
+                periodoMeses: 24,
+                interesMensual: 0.5, // 0.5%
+                aporteMensual: 100000, // Reemplaza 'ingresoMensual' y 'aporteAdicional'
+            },
+            funds: [
+                { id: 'emergencia', name: 'Emergencia', percentage: 50, color: '#1d2a4e' }, // Indigo-900
+                { id: 'cortoPlazo', name: 'Metas a corto plazo', percentage: 25, color: '#00ade1' }, // Cyan-500
+                { id: 'largoPlazo', name: 'Metas a largo plazo', percentage: 25, color: '#80b122' } // Green-500
+            ],
+            results: null, // Almacena los resultados de la simulación
+        };
+
+        // Colores del gráfico (para Chart.js)
+        const CHART_COLORS = [
+            'rgba(29, 42, 78, 0.8)',   // Indigo-900 con opacidad
+            'rgba(0, 173, 225, 0.8)',  // Cyan-500 con opacidad
+            'rgba(128, 177, 34, 0.8)'  // Green-500 con opacidad
+        ];
+        
+        const CHART_BORDERS = [
+            '#1d2a4e',
+            '#00ade1',
+            '#80b122'
+        ];
+
+        // --- UTILIDADES ---
+
+        /**
+         * @description Formatea un número a formato de moneda chilena (CLP), permitiendo especificar decimales.
+         * @param {number} amount
+         * @param {number} decimals - Número de decimales a mostrar. Por defecto es 0 (pesos chilenos).
+         * @returns {string}
+         */
+        const formatCurrency = (amount, decimals = 0) => {
+            if (typeof amount !== 'number' || isNaN(amount)) return '$0';
+            const fixedDecimals = Math.max(0, decimals);
+            
+            // Usamos 'es-CL' para formato chileno: punto como separador de miles, coma como decimal.
+            return new Intl.NumberFormat('es-CL', {
+                style: 'currency',
+                currency: 'CLP',
+                minimumFractionDigits: fixedDecimals,
+                maximumFractionDigits: fixedDecimals,
+            }).format(amount);
+        };
+        
+        /**
+         * @description Implementa una espera con reintentos para fetch (exponencial backoff).
+         * @param {function} fn - La función que devuelve la promesa (e.g., fetch).
+         * @param {number} maxRetries - Máximo número de reintentos.
+         * @param {number} delay - Retraso inicial en ms.
+         * @returns {Promise}
+         */
+        const exponentialBackoff = async (fn, maxRetries = 5, delay = 1000) => {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    return await fn();
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        console.error('Máximo de reintentos alcanzado.', error);
+                        throw error;
+                    }
+                    // Espera exponencial: delay * 2^i
+                    await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+                }
+            }
+        };
+
+        // --- GESTIÓN DE ESTADO Y API PÚBLICA (window.Simulador211) ---
+
+        /**
+         * @description Guarda el estado actual en localStorage.
+         */
+        const saveState = () => {
+            try {
+                // Solo guardamos la data relevante (excluyendo 'results')
+                const stateToSave = {
+                    general: state.general,
+                    funds: state.funds.map(f => ({ id: f.id, name: f.name, percentage: f.percentage })),
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+            } catch (error) {
+                console.error("Error al guardar en localStorage:", error);
+            }
+        };
+
+        /**
+         * @description Carga el estado desde localStorage o usa el estado por defecto.
+         * @param {object} newState - Estado opcional para cargar, si no se usa localStorage.
+         */
+        const load = (newState) => {
+            let loadedState = null;
+            
+            if (newState) {
+                loadedState = newState;
+            } else {
+                try {
+                    const storedState = localStorage.getItem(STORAGE_KEY);
+                    if (storedState) {
+                        loadedState = JSON.parse(storedState);
+                    }
+                } catch (error) {
+                    console.error("Error al cargar de localStorage. Usando estado por defecto.", error);
+                }
+            }
+
+            // Mezcla el estado cargado con el por defecto para asegurar todas las claves existan.
+            state = { 
+                ...DEFAULT_STATE, 
+                ...loadedState,
+                general: { ...DEFAULT_STATE.general, ...(loadedState?.general || {}) },
+                funds: DEFAULT_STATE.funds.map(defaultFund => {
+                    const loadedFund = loadedState?.funds?.find(f => f.id === defaultFund.id);
+                    return { ...defaultFund, ...(loadedFund || {}) };
+                }),
+                results: null // Siempre reiniciamos los resultados al cargar
+            };
+            
+            // Asigna los valores al input del Aporte Mensual correctamente si se cargó desde storage
+            if (loadedState && loadedState.general.aporteMensual !== undefined) {
+                state.general.aporteMensual = loadedState.general.aporteMensual;
+            } else if (loadedState && loadedState.general.ingresoMensual !== undefined) {
+                 // Si cargamos una versión antigua que tenía ingresoMensual, lo usamos como AporteMensual
+                state.general.aporteMensual = loadedState.general.ingresoMensual + (loadedState.general.aporteAdicional || 0);
+            }
+
+            renderForm();
+            renderSummary();
+            // No recalcular automáticamente, esperar a la acción del usuario o load()
+        };
+
+        /**
+         * @description Expone el estado actual.
+         * @returns {object} El objeto de estado actual.
+         */
+        const getState = () => state;
+
+        /**
+         * @description Reinicia el estado a los valores por defecto.
+         */
+        const reiniciar = () => {
+            state = { ...DEFAULT_STATE }; 
+            saveState();
+            renderForm();
+            renderSummary();
+            hideResults();
+            updateStatusMessage('Simulación reiniciada a valores por defecto.', 'warning');
+        };
+
+        // --- GESTIÓN DE LA INTERFAZ DE USUARIO (UI) ---
+
+        /**
+         * @description Renderiza los inputs del formulario con los valores del estado.
+         */
+        const renderForm = () => {
+            // 1. Inputs Generales
+            Object.keys(state.general).forEach(key => {
+                const input = document.getElementById(key);
+                if (input) {
+                    input.value = state.general[key];
+                    input.onchange = (e) => handleGeneralInputChange(key, e.target.value);
+                    input.oninput = (e) => handleGeneralInputChange(key, e.target.value); // Para actualización inmediata
+                }
+            });
+
+            // 2. Inputs de Fondos (Nombre y Porcentaje)
+            const fundsContainer = document.getElementById('funds-container');
+            fundsContainer.innerHTML = '';
+            
+            state.funds.forEach((fund, index) => {
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-6 md:grid-cols-4 lg:grid-cols-6 gap-3 items-center p-3 rounded-xl border border-gray-200 bg-gray-50';
+                
+                div.innerHTML = `
+                    <div class="col-span-3 md:col-span-2 lg:col-span-3">
+                        <label for="name-${fund.id}" class="block text-sm font-medium text-gray-500">Nombre del fondo ${index + 1}</label>
+                        <input type="text" id="name-${fund.id}" value="${fund.name}" class="input-field mt-1" required>
+                    </div>
+                    <div class="col-span-3 md:col-span-2 lg:col-span-3">
+                        <label for="percentage-${fund.id}" class="block text-sm font-medium text-gray-500">Porcentaje (%)</label>
+                        <div class="relative mt-1">
+                            <input type="number" id="percentage-${fund.id}" min="0" max="100" step="0.01" data-testid="input-porcentaje-${fund.id}" value="${fund.percentage}" class="input-field pr-10" required>
+                            <span class="absolute right-0 inset-y-0 flex items-center pr-3 text-gray-500">%</span>
+                        </div>
+                    </div>
+                `;
+
+                fundsContainer.appendChild(div);
+
+                // Asignar listeners a los inputs de fondo
+                document.getElementById(`name-${fund.id}`).oninput = (e) => handleFundNameChange(fund.id, e.target.value);
+                document.getElementById(`percentage-${fund.id}`).oninput = (e) => handleFundPercentageChange(fund.id, parseFloat(e.target.value));
+            });
+        };
+
+        /**
+         * @description Maneja el cambio en un input de parámetro general.
+         * @param {string} key - Clave del parámetro general (ej. 'aporteMensual').
+         * @param {string} value - Nuevo valor del input (como string).
+         */
+        const handleGeneralInputChange = (key, value) => {
+            const numValue = key === 'periodoMeses' ? parseInt(value) : parseFloat(value);
+            state.general[key] = isNaN(numValue) ? 0 : numValue;
+            validateGeneralInput(key, state.general[key]);
+            saveState();
+        };
+
+        /**
+         * @description Maneja el cambio en el nombre de un fondo.
+         * @param {string} id - ID del fondo.
+         * @param {string} name - Nuevo nombre.
+         */
+        const handleFundNameChange = (id, name) => {
+            const fund = state.funds.find(f => f.id === id);
+            if (fund) {
+                fund.name = name;
+                saveState();
+                renderSummary(); // Actualiza el resumen con el nuevo nombre
+            }
+        };
+
+        /**
+         * @description Maneja el cambio en el porcentaje de un fondo.
+         * @param {string} id - ID del fondo.
+         * @param {number} percentage - Nuevo porcentaje.
+         */
+        const handleFundPercentageChange = (id, percentage) => {
+            const fund = state.funds.find(f => f.id === id);
+            if (fund) {
+                fund.percentage = percentage;
+                validatePercentages();
+                saveState();
+                renderSummary(); // Actualiza el resumen con los nuevos porcentajes
+            }
+        };
+
+        // --- VALIDACIÓN ---
+
+        /**
+         * @description Valida que todos los porcentajes sumen 100%.
+         * @returns {boolean} True si la suma es 100%, false si no.
+         */
+        const validatePercentages = () => {
+            const totalPercentage = state.funds.reduce((sum, fund) => sum + (fund.percentage || 0), 0);
+            const isValid = Math.abs(totalPercentage - 100) < 0.001; // Tolerancia por errores de coma flotante
+            
+            const errorElement = document.getElementById('error-porcentajes');
+            if (isValid) {
+                errorElement.classList.add('hidden');
+            } else {
+                errorElement.classList.remove('hidden');
+                errorElement.innerHTML = `<i class="ph-fill ph-warning text-lg mr-1"></i> Los porcentajes (Total: ${totalPercentage.toFixed(2)}%) deben sumar 100% para poder calcular.`;
+            }
+            return isValid;
+        };
+
+        /**
+         * @description Valida un input general numérico (debe ser $\ge 0$).
+         * @param {string} key - Clave del input.
+         * @param {number} value - Valor del input.
+         * @returns {boolean} True si es válido.
+         */
+        const validateGeneralInput = (key, value) => {
+            const errorElement = document.getElementById(`error-${key}`);
+            let isValid = true;
+            let errorMessage = '';
+
+            if (isNaN(value) || value < 0) {
+                isValid = false;
+                errorMessage = `El valor de ${key} debe ser $\ge 0$.`;
+            } else if (key === 'periodoMeses' && (value < 1 || !Number.isInteger(value))) {
+                isValid = false;
+                errorMessage = 'El periodo debe ser un número entero $\ge 1$.';
+            } else if (key === 'interesMensual' && value > 100) {
+                 isValid = false;
+                 errorMessage = 'El interés no puede ser $> 100$.';
+            }
+            
+            if (isValid) {
+                errorElement.classList.add('hidden');
+            } else {
+                errorElement.classList.remove('hidden');
+                errorElement.innerHTML = `<i class="ph-fill ph-warning text-lg mr-1"></i> ${errorMessage}`;
+            }
+            return isValid;
+        };
+
+        /**
+         * @description Valida todos los inputs generales y porcentajes.
+         * @returns {boolean} True si todo es válido.
+         */
+        const validateAll = () => {
+            const generalValid = Object.keys(state.general).every(key => validateGeneralInput(key, state.general[key]));
+            const percentageValid = validatePercentages();
+            return generalValid && percentageValid;
+        };
+
+        /**
+         * @description Muestra un mensaje de estado (éxito, error, advertencia).
+         * @param {string} message - El texto del mensaje.
+         * @param {'success'|'error'|'warning'} type - El tipo de mensaje.
+         */
+        const updateStatusMessage = (message, type) => {
+            const msgElement = document.getElementById('status-message');
+            msgElement.innerHTML = `<i class="ph-fill ph-${type === 'error' ? 'x-circle' : (type === 'success' ? 'check-circle' : 'warning')} text-lg mr-1"></i> ${message}`;
+            msgElement.className = `p-3 rounded-md msg-${type}`;
+            msgElement.classList.remove('hidden');
+            setTimeout(() => msgElement.classList.add('hidden'), 5000);
+        };
+
+        // --- LÓGICA DE SIMULACIÓN (RECALCULAR) ---
+
+        /**
+         * @description Ejecuta la simulación de ahorro y actualiza los resultados.
+         * @returns {void}
+         */
+        const recalcular = () => {
+            if (!validateAll()) {
+                updateStatusMessage('Error: revisa los valores ingresados. La simulación no pudo calcularse.', 'error');
+                hideResults();
+                return;
+            }
+
+            const { saldoInicial, periodoMeses, interesMensual, aporteMensual } = state.general;
+            const funds = state.funds;
+
+            // Inicialización de resultados
+            const simulationResults = [];
+            const currentBalances = funds.map(f => ({
+                id: f.id,
+                name: f.name,
+                balance: saldoInicial * (f.percentage / 100), // Distribución inicial del saldo
+            }));
+
+            // Tasa de interés mensual (decimal): Corregido de /100/100 a solo /100. Ej: 0.5% -> 0.005
+            const monthlyRate = interesMensual / 100;
+            let totalCapitalInvested = saldoInicial; // Capital inicial
+            let totalInterestAccumulated = 0;
+
+            // Loop de simulación mes a mes
+            for (let month = 1; month <= periodoMeses; month++) {
+                const monthlySnapshot = {
+                    month: month,
+                    fundBalances: {},
+                    totalBalance: 0,
+                    totalInvestment: 0, // Capital total invertido hasta este mes
+                    monthlyInterestGain: 0, // Interés ganado solo en este mes
+                };
+
+                // Acumular el aporte de este mes al capital total
+                totalCapitalInvested += aporteMensual;
+
+                currentBalances.forEach(fund => {
+                    const fundConfig = funds.find(f => f.id === fund.id);
+                    const percentage = fundConfig.percentage / 100;
+
+                    // 1. Aporte mensual distribuido
+                    const monthlyDeposit = aporteMensual * percentage;
+                    
+                    // 2. Intereses Ganados (sobre el saldo actual)
+                    const monthlyInterest = fund.balance * monthlyRate;
+
+                    // 3. Nuevo Saldo
+                    fund.balance = fund.balance + monthlyDeposit + monthlyInterest;
+
+                    // Acumular métricas
+                    monthlySnapshot.fundBalances[fund.id] = fund.balance;
+                    monthlySnapshot.totalBalance += fund.balance;
+                    monthlySnapshot.monthlyInterestGain += monthlyInterest;
+                });
+                
+                // Actualizar total invertido y total interés acumulado
+                monthlySnapshot.totalInvestment = totalCapitalInvested;
+                totalInterestAccumulated += monthlySnapshot.monthlyInterestGain;
+                
+                simulationResults.push(monthlySnapshot);
+            }
+
+            state.results = simulationResults;
+            saveState(); 
+
+            // Renderizar los resultados
+            renderResults();
+            updateStatusMessage('Simulación completada correctamente.', 'success');
+        };
+
+        // --- RENDERIZADO DE RESULTADOS ---
+
+        /**
+         * @description Oculta la sección de resultados (gráfico y tabla).
+         */
+        const hideResults = () => {
+            document.getElementById('resultados').classList.add('hidden');
+            renderSummary(); // Limpiar el resumen también
+        }
+
+        /**
+         * @description Muestra y actualiza todas las secciones de resultados.
+         */
+        const renderResults = () => {
+            document.getElementById('resultados').classList.remove('hidden');
+            renderSummary();
+            renderChart();
+            renderTable();
+        };
+
+        /**
+         * @description Renderiza la tarjeta de Totales Acumulados.
+         */
+        const renderSummary = () => {
+            const summaryDiv = document.getElementById('totales-acumulados');
+            summaryDiv.innerHTML = ''; // Limpiar contenido
+
+            if (!state.results || state.results.length === 0) {
+                summaryDiv.innerHTML = `
+                    <p class="text-sm text-dark-brand">Presiona "Calcular simulación" para ver los resultados.</p>
+                    <div id="distribucion-actual">
+                        <h3 class="font-semibold text-base mt-3 text-dark-brand">Distribución de aportes</h3>
+                        ${state.funds.map(fund => `
+                            <p class="flex justify-between text-sm mt-1">
+                                <span class="font-medium chart-color-${state.funds.indexOf(fund) + 1}"><i class="ph-fill ph-circle text-xs mr-1"></i> ${fund.name}:</span>
+                                <span>${fund.percentage}%</span>
+                            </p>
+                        `).join('')}
+                    </div>
+                `;
+                return;
+            }
+
+            const finalSnapshot = state.results[state.results.length - 1];
+            const totalFinal = finalSnapshot.totalBalance;
+            const totalAporte = finalSnapshot.totalInvestment; // Capital total aportado (inicial + mensual)
+            const totalInteres = totalFinal - totalAporte;
+            const growthPercentage = totalAporte > 0 ? (totalInteres / totalAporte) * 100 : 0;
+
+            // Usamos formatCurrency(..., 0) para quitar decimales (pesos chilenos)
+            summaryDiv.innerHTML = `
+                <div class="space-y-3">
+                    <p class="text-2xl font-bold">Total final: <span class="text-green-500">${formatCurrency(totalFinal, 0)}</span></p>
+                    <div class="text-sm text-dark-brand space-y-1">
+                        <p class="flex justify-between"><span>Capital aportado:</span> <span class="font-medium">${formatCurrency(totalAporte, 0)}</span></p>
+                        <p class="flex justify-between">
+                            <span>Intereses ganados:</span> 
+                            <span class="font-bold text-green-500">${formatCurrency(totalInteres, 0)}</span>
+                        </p>
+                        <p class="flex justify-between pt-1 border-t border-gray-200">
+                            <span>Crecimiento total:</span> 
+                            <span class="font-bold text-lg ${growthPercentage >= 0 ? 'text-green-500' : 'text-red-600'}">${growthPercentage.toFixed(2)}%</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-gray-200 space-y-2" id="distribucion-actual">
+                    <h3 class="font-semibold text-lg text-dark-brand">Distribución final por fondo</h3>
+                    ${state.funds.map((fund, index) => {
+                        const balance = finalSnapshot.fundBalances[fund.id] || 0;
+                        const percentageOfTotal = (balance / totalFinal) * 100;
+                        return `
+                            <p class="text-base flex justify-between">
+                                <span class="font-medium chart-color-${index + 1}"><i class="ph-fill ph-circle text-xs mr-1"></i> ${fund.name}:</span>
+                                <span>${formatCurrency(balance, 0)} (${percentageOfTotal.toFixed(2)}%)</span>
+                            </p>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        };
+
+        /**
+         * @description Renderiza el Gráfico de Evolución con Chart.js.
+         */
+        const renderChart = () => {
+            const ctx = document.getElementById('evolution-chart').getContext('2d');
+            
+            // Si el gráfico existe, destrúyelo
+            if (evolutionChart) {
+                evolutionChart.destroy();
+            }
+
+            if (!state.results || state.results.length === 0) return;
+
+            const labels = state.results.map(r => `Mes ${r.month}`);
+            const datasets = [
+                // Total (Línea principal)
+                {
+                    label: 'Total acumulado',
+                    data: state.results.map(r => r.totalBalance),
+                    borderColor: '#da3728', // Rojo para el total (contraste)
+                    backgroundColor: 'rgba(218, 55, 40, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    order: 0 // Dibujar el total por encima
+                },
+                // Fondos (Área Stacked)
+                ...state.funds.map((fund, index) => ({
+                    label: fund.name,
+                    data: state.results.map(r => r.fundBalances[fund.id]),
+                    backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
+                    borderColor: CHART_BORDERS[index % CHART_COLORS.length],
+                    borderWidth: 1,
+                    tension: 0.4,
+                    fill: true,
+                    stack: 'Stack 0', // Para apilarlos
+                    order: 1 // Dibujar los fondos debajo del total
+                }))
+            ];
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#1d2a4e' } // Color de leyenda
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                // Mantenemos 0 decimales en el tooltip (CLP)
+                                if (context.parsed.y !== null) {
+                                    label += formatCurrency(context.parsed.y, 0); 
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Mes', color: '#1d2a4e' },
+                        ticks: { color: '#1d2a4e' },
+                        grid: { color: 'rgba(29, 42, 78, 0.2)' }
+                    },
+                    y: {
+                        stacked: true, // Apilar los fondos
+                        title: { display: true, text: 'Balance ($)', color: '#1d2a4e' },
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => formatCurrency(value, 0), // Sin decimales en el eje Y
+                            color: '#1d2a4e'
+                        },
+                        grid: { color: 'rgba(29, 42, 78, 0.2)' }
+                    }
+                }
+            };
+            
+            // Crear el nuevo gráfico
+            evolutionChart = new Chart(ctx, {
+                type: 'line', // Tipo de gráfico: Línea
+                data: {
+                    labels: labels,
+                    datasets: datasets,
+                },
+                options: chartOptions,
+            });
+        };
+        
+        /**
+         * @description Renderiza la Tabla de Resultados Mensuales.
+         */
+        const renderTable = () => {
+            const tableBody = document.getElementById('results-table-body');
+            const tableHead = document.querySelector('#results-table thead');
+            tableBody.innerHTML = '';
+            tableHead.innerHTML = '';
+
+            if (!state.results || state.results.length === 0) return;
+
+            // 1. Encabezados de la Tabla
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+            
+            let htmlHead = '<th>Mes</th>';
+            state.funds.forEach(fund => {
+                htmlHead += `<th>${fund.name}</th>`;
+            });
+            htmlHead += '<th>Total invertido</th>'; // Nueva columna: Capital
+            htmlHead += '<th>Ganancia del periodo (\$)</th>'; // Nueva columna: Interés mensual
+            htmlHead += '<th>Total acumulado</th>';
+            tableHead.innerHTML = `<tr>${htmlHead}</tr>`;
+
+            // 2. Cuerpo de la Tabla (Filas)
+            state.results.forEach(snapshot => {
+                const row = document.createElement('tr');
+                row.className = 'bg-white hover:bg-gray-50 transition duration-150 ease-in-out';
+                
+                // Se ajustaron clases de texto
+                let htmlRow = `<td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-800">${snapshot.month}</td>`;
+                
+                state.funds.forEach(fund => {
+                    const balance = snapshot.fundBalances[fund.id] || 0;
+                    htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${formatCurrency(balance, 0)}</td>`;
+                });
+                
+                // Columna Total Invertido (Capital)
+                htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm text-indigo-900 font-medium">${formatCurrency(snapshot.totalInvestment, 0)}</td>`;
+
+                // Columna Ganancia del Periodo (Interés)
+                htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm text-green-600">${formatCurrency(snapshot.monthlyInterestGain, 0)}</td>`;
+                
+                // Columna Total Acumulado
+                htmlRow += `<td class="px-3 py-3 whitespace-nowrap text-sm font-bold text-red-600">${formatCurrency(snapshot.totalBalance, 0)}</td>`;
+                
+                row.innerHTML = htmlRow;
+                tableBody.appendChild(row);
+            });
+        };
+
+        // --- EXPORTAR CSV ---
+
+        /**
+         * @description Exporta los resultados de la simulación a un archivo CSV.
+         */
+        const exportarCSV = () => {
+            if (!state.results || state.results.length === 0) {
+                updateStatusMessage('No hay resultados para exportar. Ejecuta la simulación primero.', 'warning');
+                return;
+            }
+
+            let csv = '';
+            
+            // 1. Encabezados
+            const headers = ['Mes'];
+            state.funds.forEach(fund => headers.push(fund.name));
+            headers.push('Total Invertido (Capital)');
+            headers.push('Ganancia del Periodo (Interes)');
+            headers.push('Total Acumulado');
+            csv += headers.join(';') + '\n'; // Usamos ';' como separador para compatibilidad con Excel chileno
+
+            // 2. Filas de datos
+            state.results.forEach(snapshot => {
+                const rowData = [snapshot.month];
+                state.funds.forEach(fund => {
+                    const balance = snapshot.fundBalances[fund.id] || 0;
+                    // Usamos toFixed(2) para asegurar el formato numérico sin separadores de miles
+                    rowData.push(balance.toFixed(0)); // Sin decimales en el valor puro
+                });
+                rowData.push(snapshot.totalInvestment.toFixed(0));
+                rowData.push(snapshot.monthlyInterestGain.toFixed(0));
+                rowData.push(snapshot.totalBalance.toFixed(0));
+                csv += rowData.join(';') + '\n';
+            });
+
+            // 3. Crear y descargar el archivo
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'simulacion_ahorro_211.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                updateStatusMessage('Datos exportados exitosamente a CSV.', 'success');
+            } else {
+                updateStatusMessage('Tu navegador no soporta la descarga automática de CSV.', 'error');
+            }
+        };
+
+        // --- INICIALIZACIÓN Y LISTENERS DE EVENTOS ---
+
+        /**
+         * @description Configura todos los event listeners.
+         */
+        const setupEventListeners = () => {
+            document.getElementById('boton-calcular').addEventListener('click', recalcular);
+            document.getElementById('boton-exportar').addEventListener('click', exportarCSV);
+            document.getElementById('boton-reiniciar').addEventListener('click', reiniciar);
+        };
+        
+        // Exposición de la API pública en el objeto global 'window'
+        window.Simulador211 = {
+            load,
+            getState,
+            recalcular,
+            exportarCSV,
+            reiniciar
+        };
+
+        // Carga inicial al cargar la ventana
+        window.onload = () => {
+            load(); // Carga el estado guardado o por defecto
+            setupEventListeners();
+        };
+
+    </script>
+</body>
+</html>
