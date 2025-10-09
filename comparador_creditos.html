@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Developer Note: Adjusted title capitalization -->
+    <title>Comparador de créditos</title>
+    <!-- Load Lexend font -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Developer Note: Custom CSS variables based on the Umine Kit palette */
+        :root {
+            --color-navy: #1d2a4e;
+            --color-sky: #00ade1;
+            --color-yellow: #ffcd22;
+            --color-green: #80b122;
+            --color-gray: #ececec;
+            --color-red: #da3728;
+            --color-violet: #575e9a;
+            --font-family-lexend: 'Lexend', sans-serif;
+        }
+
+        /* Developer Note: Apply Lexend font globally */
+        body {
+            font-family: var(--font-family-lexend);
+            background-color: #f7f7f7;
+        }
+
+        /* Developer Note: Utility classes for the Umine palette */
+        /* These utility classes remain for non-chart elements like buttons and text */
+        .bg-navy { background-color: var(--color-navy); }
+        .text-navy { color: var(--color-navy); }
+        .bg-sky { background-color: var(--color-sky); }
+        .text-sky { color: var(--color-sky); }
+        .bg-yellow { background-color: var(--color-yellow); }
+        .text-yellow { color: var(--color-yellow); }
+        .bg-green { background-color: var(--color-green); }
+        .text-green { color: var(--color-green); }
+        .bg-red { background-color: var(--color-red); }
+        .text-red { color: var(--color-red); }
+        .text-violet { color: var(--color-violet); }
+        .border-gray { border-color: var(--color-gray); }
+
+        /* Developer Note: Base styles for cards and inputs */
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-navy);
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--color-gray);
+            border-radius: 8px;
+            transition: border-color 0.2s;
+            font-size: 1rem;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--color-sky);
+            box-shadow: 0 0 0 2px rgba(0, 173, 225, 0.2);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            color: var(--color-sky); /* Developer Note: Updated tooltip icon color to Sky Blue */
+            font-size: 0.8rem;
+            margin-left: 4px;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--color-navy);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%; /* Position above */
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            font-weight: 400;
+            line-height: 1.3;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Developer Note: Responsive Grid for Loan Cards */
+        #loan-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+        
+        .loan-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .loan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Developer Note: Styles for the dual chart container */
+        #charts-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            #charts-wrapper {
+                flex-direction: row;
+            }
+        }
+
+        .chart-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            height: 100%;
+            width: 100%;
+            padding: 1rem 0;
+        }
+        
+        .chart-bar-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            height: 100%;
+            margin: 0 10px;
+            flex: 1 1 0%;
+        }
+
+        .bar {
+            width: 40px; /* Wider bar for single chart */
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <header class="text-center mb-8">
+        <!-- Developer Note: Adjusted header capitalization -->
+        <h1 class="text-3xl sm:text-4xl font-bold text-navy mb-2">Comparador de créditos</h1>
+        <p class="text-violet max-w-2xl mx-auto">Analiza y compara hasta tres opciones de crédito simultáneamente para tomar la mejor decisión financiera.</p>
+    </header>
+
+    <main class="max-w-6xl mx-auto">
+        <!-- Developer Note: Input Disclaimer Section - Changed color to Violet and fixed markdown artifacts/separator rule -->
+        <div class="card p-4 mb-6 bg-violet/10 border-l-4 border-violet">
+            <p class="text-sm text-violet font-semibold flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                <!-- Developer Note: Adjusted capitalization -->
+                Aviso importante sobre entradas numéricas
+            </p>
+            <!-- Developer Note: Updated instructions to handle decimal comma for rate and removed markdown asterisks, using <strong> instead -->
+            <p class="text-xs text-violet mt-1">
+                Para <strong>monto del crédito</strong> y <strong>plazo en meses</strong>, solo se permiten números enteros positivos (sin caracteres). Para <strong>tasa de interés anual</strong>, use la coma (`,`) como separador decimal. Ejemplo: para cinco coma cinco por ciento, ingrese `5,5`.
+            </p>
+        </div>
+
+        <!-- Developer Note: Top Action Buttons (Añadir, aligned right) -->
+        <div class="flex justify-end gap-4 mb-6">
+            <button id="add-loan-btn" class="flex items-center px-6 py-3 font-semibold text-white bg-sky hover:bg-opacity-90 rounded-xl shadow-lg transition duration-200">
+                <!-- Developer Note: Changed icon to simple plus sign (+) as requested -->
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <!-- Developer Note: Adjusted capitalization -->
+                Añadir opción de crédito
+            </button>
+            <!-- Developer Note: Restablecer y borrar button removed as requested -->
+        </div>
+
+        <!-- Developer Note: Loan Cards Container -->
+        <div id="loan-cards-container">
+            <!-- Loan cards will be rendered here by JavaScript -->
+        </div>
+        
+        <!-- Developer Note: Compare Button (Violet) -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4 mt-6 mb-8">
+             <button id="compare-btn" class="flex items-center px-8 py-4 font-bold text-white bg-violet hover:bg-opacity-90 rounded-xl shadow-lg transition duration-200 text-lg">
+                <!-- Developer Note: Balance/scale icon (balanza) -->
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M3 10h18M5 14h14M8 18h8M6 6h12"/></svg>
+                <!-- Developer Note: Adjusted capitalization -->
+                Comparar opciones
+            </button>
+            <!-- Developer Note: Export button removed as requested -->
+        </div>
+
+        <!-- Developer Note: Summary Comparison Table -->
+        <!-- HIDDEN by default until Compare is clicked -->
+        <div id="summary-section" class="card mt-10 p-6 hidden">
+            <!-- Developer Note: Adjusted capitalization -->
+            <h2 class="text-2xl font-bold text-navy mb-4 border-b pb-2 border-violet/20">Resumen de la comparación</h2>
+            <div class="overflow-x-auto">
+                <table id="summary-table" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Opción</th>
+                            <!-- Developer Note: Adjusted table header strings -->
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Monto solicitado</th>
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Tasa anual</th>
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Plazo (meses)</th>
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Cuota mensual est.</th>
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Costo total del crédito</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="summary-table-body">
+                        <!-- Summary rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            <p id="summary-message" class="text-center text-sm text-violet mt-4 italic">Resultados generados por la herramienta de comparación.</p>
+        </div>
+
+        <!-- Developer Note: Chart Section (Dual Bar Charts) -->
+        <!-- HIDDEN by default until Compare is clicked -->
+        <div id="chart-container" class="card mt-6 p-6 hidden">
+            <!-- Developer Note: Adjusted capitalization -->
+            <h2 class="text-2xl font-bold text-navy mb-4 border-b pb-2 border-violet/20">Visualización comparativa</h2>
+            
+            <div id="charts-wrapper">
+                <!-- Chart 1: Cuota Mensual -->
+                <div class="chart-container">
+                    <!-- Developer Note: Removed "(vs Max)" from title -->
+                    <h3 class="text-lg font-semibold text-sky mb-2">Cuota mensual</h3>
+                    <div id="monthly-chart-bars" class="chart-bars h-64">
+                        <!-- Monthly chart bars will be rendered here -->
+                    </div>
+                    <!-- Developer Note: Removed legend/labels as requested -->
+                </div>
+
+                <!-- Chart 2: Costo Total -->
+                <div class="chart-container border-t pt-4 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-4 border-gray/80 mt-4 sm:mt-0">
+                    <!-- Developer Note: Removed "(vs Max)" from title -->
+                    <h3 class="text-lg font-semibold text-navy mb-2">Costo total</h3>
+                    <div id="total-cost-chart-bars" class="chart-bars h-64">
+                        <!-- Total Cost chart bars will be rendered here -->
+                    </div>
+                    <!-- Developer Note: Removed legend/labels as requested -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Developer Note: Final Disclaimer -->
+        <p class="text-center text-xs text-violet mt-8 p-3 border-t border-gray-300">
+            Esta herramienta es informativa y no sustituye la asesoría financiera profesional.
+        </p>
+
+    </main>
+
+    <script>
+        // Developer Note: Global variables for UI elements and data structure
+        const LOAN_CARDS_CONTAINER = document.getElementById('loan-cards-container');
+        const SUMMARY_TABLE_BODY = document.getElementById('summary-table-body');
+        const ADD_LOAN_BTN = document.getElementById('add-loan-btn');
+        const COMPARE_BTN = document.getElementById('compare-btn'); // Compare button
+        const SUMMARY_SECTION = document.getElementById('summary-section'); // Summary container
+        const CHART_CONTAINER = document.getElementById('chart-container');
+        const MONTHLY_CHART_BARS = document.getElementById('monthly-chart-bars');
+        const TOTAL_COST_CHART_BARS = document.getElementById('total-cost-chart-bars');
+        const SUMMARY_MESSAGE = document.getElementById('summary-message');
+        const MAX_LOANS = 3; // Maximum number of loans to compare
+
+        // Developer Note: Initial loan data structure
+        let loans = [];
+
+        // Developer Note: Custom function to restrict input characters based on field
+        window.cleanNumericInput = (element, field) => {
+            let value = element.value;
+            
+            if (field === 'annualRate') {
+                // Allow digits (0-9) and one comma (,)
+                value = value.replace(/[^0-9,]/g, '');
+                // Ensure only the first comma is kept
+                const parts = value.split(',');
+                if (parts.length > 2) {
+                    value = parts.shift() + ',' + parts.join('');
+                }
+            } else {
+                // Monto del crédito and others: Allow only digits (0-9)
+                value = value.replace(/[^0-9]/g, '');
+            }
+            element.value = value;
+        };
+
+        // Developer Note: Utility function to handle number parsing, supporting comma decimal for rate
+        const parseNumericValue = (str, isRate = false) => {
+            if (!str) return 0;
+            
+            let num;
+            if (isRate) {
+                // Replace comma with dot for standard JS float parsing
+                num = parseFloat(str.replace(',', '.')) || 0;
+            } else {
+                // Parse as integer for Monto/Plazo
+                num = parseInt(str, 10) || 0;
+            }
+            return Math.max(0, num);
+        };
+        
+        /**
+         * Developer Note: Utility function to format numbers back to Spanish currency style.
+         * - Uses period (.) for thousands separator.
+         * - Uses comma (,) for decimal separator.
+         * - If `roundToInteger` is true, rounds to 0 decimals (used for Total Cost).
+         * - Otherwise, rounds to 2 decimals (used for Monthly Payment).
+         */
+        const formatCurrency = (number, roundToInteger = false) => {
+            if (typeof number !== 'number' || isNaN(number)) return '$ 0';
+
+            const options = {
+                style: 'currency',
+                currency: 'CLP', // Use a currency code that typically defaults to local Spanish formatting
+            };
+
+            if (roundToInteger) {
+                // For Total Cost, round to 0 decimals
+                options.minimumFractionDigits = 0;
+                options.maximumFractionDigits = 0;
+                number = Math.round(number); // Round the number before formatting
+            } else {
+                // For Monthly Payment, force 2 decimals
+                options.minimumFractionDigits = 2;
+                options.maximumFractionDigits = 2;
+            }
+
+            // Use Intl to get the standard format
+            const formatted = new Intl.NumberFormat('es-CL', options).format(number);
+
+            // Manual adjustment: Convert Intl's local thousands/decimal separator to the desired format:
+            // 1. Replace the thousands separator (which might be '.' in es-CL) with a temporary character 'X'
+            // 2. Replace the decimal separator (which is ',' in es-CL) with '.' (the desired decimal separator)
+            // 3. Replace the temporary 'X' back with ',' (the desired thousands separator)
+            // 4. Replace the default currency code 'CLP' with '$'
+            
+            // Step 1: Replace local thousands separator (usually .) with temp char
+            let result = formatted.replace(/\./g, 'X'); 
+            
+            // Step 2: Replace local decimal separator (usually ,) with desired decimal separator (,)
+            result = result.replace(/,/g, 'Y'); 
+            
+            // Step 3: Replace temp char 'X' with desired thousands separator (.)
+            result = result.replace(/X/g, '.'); 
+            
+            // Step 4: Replace temp char 'Y' with desired decimal separator (,)
+            result = result.replace(/Y/g, ',');
+
+            // Final formatting and currency symbol replacement
+            return result.replace('CLP', '$').replace(/\s/g, ''); // Remove spaces generated by Intl
+        };
+
+        // Developer Note: Utility function to format percentage (two decimals)
+        const formatPercent = (number) => {
+            if (typeof number !== 'number' || isNaN(number)) return '0,00 %';
+            
+            // Force 2 decimals and use comma for decimal separation
+            return new Intl.NumberFormat('es-CL', {
+                style: 'decimal',
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2,
+            }).format(number) + ' %';
+        };
+
+        // Developer Note: Core loan calculation using the fixed-rate amortization formula
+        const calculateLoan = (principal, annualRate, termMonths) => {
+            let monthlyPayment = 0;
+            let totalCost = 0;
+
+            if (principal > 0 && annualRate >= 0 && termMonths > 0) {
+                // Developer Note: annualRate is a percentage (e.g., 5.5), so divide by 100 to get rate, then by 12 for monthly
+                const r = annualRate / 100 / 12;
+                const n = termMonths;
+                
+                if (r > 0) {
+                    monthlyPayment = principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                } else {
+                    monthlyPayment = principal / n;
+                }
+
+                const totalPaid = monthlyPayment * n;
+                const totalInterest = totalPaid - principal;
+                totalCost = totalInterest;
+
+            } else if (principal > 0 && termMonths > 0) {
+                 monthlyPayment = principal / termMonths;
+                 totalCost = 0;
+            }
+
+            return {
+                monthlyPayment: monthlyPayment,
+                totalCost: totalCost
+            };
+        };
+        
+        // Developer Note: Lightweight function to update results display on the specific loan card
+        const updateLoanCardResults = (index, monthlyPayment, totalCost) => {
+            const monthlySpan = document.getElementById(`monthly-payment-${index}`);
+            const totalSpan = document.getElementById(`total-cost-${index}`);
+            
+            if (monthlySpan) {
+                // Monthly payment gets 2 decimals
+                monthlySpan.textContent = formatCurrency(monthlyPayment, false); 
+                monthlySpan.className = `text-lg font-bold ${monthlyPayment > 0 ? 'text-green' : 'text-violet'}`;
+            }
+
+            if (totalSpan) {
+                // Total cost gets 0 decimals (rounded)
+                totalSpan.textContent = formatCurrency(totalCost, true); 
+                totalSpan.className = `text-lg font-bold ${totalCost > 0 ? 'text-red' : 'text-violet'}`;
+            }
+        };
+
+
+        // Developer Note: Function to update an individual loan object and save to storage
+        const updateLoan = (index, field, value) => {
+            loans[index][field] = value;
+            
+            // Developer Note: Use specific parsing function for each field type
+            const principal = parseNumericValue(loans[index].principal);
+            const annualRate = parseNumericValue(loans[index].annualRate, true); // true for rate (decimal allowed)
+            const termMonths = parseNumericValue(loans[index].termMonths);
+
+            const { monthlyPayment, totalCost } = calculateLoan(
+                principal,
+                annualRate,
+                termMonths
+            );
+
+            loans[index].monthlyPayment = monthlyPayment;
+            loans[index].totalCost = totalCost;
+
+            saveLoans();
+            // Developer Note: Only update the results display on the card, not the summary/chart
+            updateLoanCardResults(index, monthlyPayment, totalCost); 
+            
+            // Developer Note: Hide summary and chart if inputs change, requiring user to re-compare
+            SUMMARY_SECTION.classList.add('hidden');
+            CHART_CONTAINER.classList.add('hidden');
+            SUMMARY_MESSAGE.textContent = 'Presione "Comparar opciones" para ver el resumen de los resultados.';
+            // Change compare button color to sky blue to prompt user to click again (default state for ready-to-compare)
+            COMPARE_BTN.classList.remove('bg-violet');
+            COMPARE_BTN.classList.add('bg-sky'); 
+        };
+
+        // Developer Note: Function to create the HTML card structure for a loan
+        const createLoanCard = (loan, index) => {
+            const card = document.createElement('div');
+            card.className = 'loan-card card';
+            card.dataset.index = index;
+            
+            const { monthlyPayment, totalCost } = loan;
+
+            // Developer Note: Input fields are created with event listeners for real-time updates and input cleaning
+            const inputsHtml = `
+                <div class="input-group">
+                    <!-- Developer Note: Adjusted label capitalization -->
+                    <label for="principal-${index}">Monto del crédito</label>
+                    <div class="flex items-center">
+                        <input id="principal-${index}" type="text" placeholder="Ej: 5000000" value="${loan.principal}" data-field="principal" 
+                            oninput="window.cleanNumericInput(this, 'principal'); handleInputChange(this, ${index})" class="flex-grow">
+                        <span class="tooltip ml-2" tabindex="0">
+                            <!-- Developer Note: New filled turquoise (sky blue) icon -->
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            <!-- Developer Note: Adjusted tooltip capitalization -->
+                            <span class="tooltiptext">Monto de dinero que se solicita al banco o entidad financiera. Solo enteros.</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <!-- Developer Note: Adjusted label capitalization -->
+                    <label for="rate-${index}">Tasa de interés anual (%)</label>
+                    <div class="flex items-center">
+                        <input id="rate-${index}" type="text" placeholder="Ej: 5,5" value="${loan.annualRate}" data-field="annualRate" 
+                            oninput="window.cleanNumericInput(this, 'annualRate'); handleInputChange(this, ${index})" class="flex-grow">
+                        <span class="tooltip ml-2" tabindex="0">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            <!-- Developer Note: Adjusted tooltip capitalization and added comma mention -->
+                            <span class="tooltiptext">Porcentaje de interés que se cobra anualmente sobre el monto pendiente. Use la coma (,) como separador decimal.</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <!-- Developer Note: Adjusted label capitalization -->
+                    <label for="term-${index}">Plazo en meses</label>
+                    <div class="flex items-center">
+                        <!-- Developer Note: Using type="number" with min="1" helps enforce positive integer input -->
+                        <input id="term-${index}" type="number" step="1" min="1" placeholder="Ej: 60" value="${loan.termMonths}" data-field="termMonths" 
+                            oninput="handleInputChange(this, ${index})" class="flex-grow">
+                        <span class="tooltip ml-2" tabindex="0">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            <!-- Developer Note: Adjusted tooltip capitalization -->
+                            <span class="tooltiptext">Número de meses en los que se pagará el crédito (ej: 60 meses = 5 años). Solo enteros.</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <!-- Developer Note: Adjusted label capitalization -->
+                    <label for="type-${index}">Tipo de interés</label>
+                    <div class="flex items-center">
+                        <select id="type-${index}" data-field="interestType" onchange="handleInputChange(this, ${index})" class="flex-grow">
+                            <option value="Fijo" ${loan.interestType === 'Fijo' ? 'selected' : ''}>Fijo</option>
+                            <option value="Variable" ${loan.interestType === 'Variable' ? 'selected' : ''}>Variable</option>
+                        </select>
+                        <span class="tooltip ml-2" tabindex="0">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            <!-- Developer Note: Adjusted tooltip capitalization -->
+                            <span class="tooltiptext">Fijo: la tasa no cambia. Variable: la tasa puede ajustarse periódicamente. (Calculadora asume tasa fija).</span>
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            // Developer Note: Results section with dynamic formatting (now includes decimals for monthly payment)
+            const resultsHtml = `
+                <div class="mt-4 pt-4 border-t border-gray/80">
+                    <!-- Developer Note: Adjusted header capitalization -->
+                    <h3 class="text-xl font-semibold text-sky mb-3">Resultados estimados</h3>
+                    <div class="flex justify-between items-center py-2 border-b border-gray">
+                        <!-- Developer Note: Adjusted label capitalization -->
+                        <span class="font-medium text-navy">Cuota mensual estimada:</span>
+                        <span id="monthly-payment-${index}" class="text-lg font-bold ${monthlyPayment > 0 ? 'text-green' : 'text-violet'}">
+                            ${formatCurrency(monthlyPayment, false)}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center py-2">
+                        <!-- Developer Note: Adjusted label capitalization -->
+                        <span class="font-medium text-navy">Costo total del crédito (intereses):</span>
+                        <span id="total-cost-${index}" class="text-lg font-bold ${totalCost > 0 ? 'text-red' : 'text-violet'}">
+                            ${formatCurrency(totalCost, true)}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            // Developer Note: Card header and delete button
+            const headerHtml = `
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold text-navy">Opción ${index + 1}</h2>
+                    ${index > 0 || loans.length > 1 ? `<button onclick="deleteLoan(${index})" class="text-red hover:text-red/80 transition" title="Eliminar opción">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>` : ''}
+                </div>
+            `;
+
+            card.innerHTML = headerHtml + inputsHtml + resultsHtml;
+            return card;
+        };
+
+        // Developer Note: Handles input change for both text and select fields
+        window.handleInputChange = (element, index) => {
+            const field = element.dataset.field;
+            let value = element.value;
+
+            // 1. Clean input based on field type
+            if (field === 'principal' || field === 'annualRate') {
+                window.cleanNumericInput(element, field);
+                value = element.value; // Get cleaned value
+            }
+
+            if (element.type === 'text') {
+                // Update internal loan data with cleaned string value
+                updateLoan(index, field, value);
+            } else if (element.type === 'number') {
+                // For Plazo en Meses (type="number"), ensure the value is a positive integer > 0
+                const numVal = Math.max(1, Math.floor(parseFloat(value) || 1));
+                element.value = numVal; // Update display to show cleaned value
+                updateLoan(index, field, element.value.toString()); // Store as string for consistency
+            } else {
+                // For select, just use the value
+                updateLoan(index, field, value);
+            }
+        };
+
+        // Developer Note: Renders all loan cards based on the 'loans' array
+        const renderLoans = () => {
+            LOAN_CARDS_CONTAINER.innerHTML = '';
+            loans.forEach((loan, index) => {
+                LOAN_CARDS_CONTAINER.appendChild(createLoanCard(loan, index));
+            });
+
+            // Hide/show the Add button based on the maximum limit
+            ADD_LOAN_BTN.disabled = loans.length >= MAX_LOANS;
+            ADD_LOAN_BTN.classList.toggle('opacity-50', loans.length >= MAX_LOANS);
+        };
+
+        // Developer Note: Adds a new loan option
+        const addLoan = () => {
+            if (loans.length < MAX_LOANS) {
+                const newLoan = {
+                    principal: '',
+                    annualRate: '',
+                    termMonths: '60',
+                    interestType: 'Fijo',
+                    monthlyPayment: 0,
+                    totalCost: 0
+                };
+                loans.push(newLoan);
+                saveLoans();
+                renderLoans();
+                // Developer Note: Keep comparison hidden until user compares again
+                SUMMARY_SECTION.classList.add('hidden');
+                CHART_CONTAINER.classList.add('hidden');
+                COMPARE_BTN.classList.remove('bg-violet');
+                COMPARE_BTN.classList.add('bg-sky');
+            }
+        };
+
+        // Developer Note: Deletes a loan option by index
+        window.deleteLoan = (index) => {
+            if (loans.length > 1) {
+                loans.splice(index, 1);
+            } else {
+                 // Reset the last remaining loan instead of deleting the card itself
+                 loans[0] = {
+                    principal: '', annualRate: '', termMonths: '60', interestType: 'Fijo', monthlyPayment: 0, totalCost: 0
+                 };
+            }
+            saveLoans();
+            renderLoans();
+            // Developer Note: Hide comparison after modification
+            SUMMARY_SECTION.classList.add('hidden');
+            CHART_CONTAINER.classList.add('hidden');
+            COMPARE_BTN.classList.remove('bg-violet');
+            COMPARE_BTN.classList.add('bg-sky');
+            SUMMARY_MESSAGE.textContent = 'Presione "Comparar opciones" para ver el resumen de los resultados.';
+        };
+        
+        // Developer Note: Function to run comparison and show results
+        const runComparison = () => {
+            updateSummary();
+            updateChart();
+            SUMMARY_SECTION.classList.remove('hidden');
+            
+            // Highlight the compare button to VIOLET to indicate comparison is complete (as requested)
+            COMPARE_BTN.classList.remove('bg-sky');
+            COMPARE_BTN.classList.add('bg-violet');
+            
+            // Scroll to the summary section
+            SUMMARY_SECTION.scrollIntoView({ behavior: 'smooth' });
+        };
+
+
+        // Developer Note: Updates the summary table and highlights best options
+        const updateSummary = () => {
+            SUMMARY_TABLE_BODY.innerHTML = '';
+            
+            // Note: Valid loans are based on the parsed integer values
+            const validLoans = loans.filter(l => parseNumericValue(l.principal) > 0 && parseNumericValue(l.annualRate, true) >= 0 && parseNumericValue(l.termMonths) > 0);
+            
+            if (validLoans.length < 2) {
+                 SUMMARY_MESSAGE.textContent = 'Ingrese al menos dos opciones válidas para generar una comparación.';
+                 CHART_CONTAINER.classList.add('hidden');
+                 SUMMARY_SECTION.classList.remove('hidden'); // Show the section to display the message
+                 return;
+            }
+            
+            SUMMARY_MESSAGE.textContent = 'Resultados generados por la herramienta de comparación.';
+
+
+            // Developer Note: Determine best options for highlighting
+            let bestMonthlyPayment = Infinity;
+            let bestTotalCost = Infinity;
+
+            if (validLoans.length > 0) {
+                // Compare based on the actual calculated floating-point values for accuracy
+                bestMonthlyPayment = Math.min(...validLoans.map(l => l.monthlyPayment));
+                bestTotalCost = Math.min(...validLoans.map(l => l.totalCost));
+            }
+
+
+            validLoans.forEach((loan, index) => {
+                const isBestMonthly = loan.monthlyPayment === bestMonthlyPayment && bestMonthlyPayment > 0;
+                const isBestTotalCost = loan.totalCost === bestTotalCost && bestTotalCost >= 0;
+                
+                // For worst calculation, use the actual values
+                const maxMonthlyPayment = Math.max(...validLoans.map(l => l.monthlyPayment));
+                const maxTotalCost = Math.max(...validLoans.map(l => l.totalCost));
+
+                const monthlyClass = isBestMonthly ? 'bg-green/20 text-green-800 font-semibold rounded' : '';
+                const costClass = isBestTotalCost ? 'bg-green/20 text-green-800 font-semibold rounded' : '';
+                
+                const worstTotalCost = validLoans.length > 1 && loan.totalCost === maxTotalCost && !isBestTotalCost && loan.totalCost > 0 ? 'bg-red/20 text-red-800' : '';
+                const worstMonthly = validLoans.length > 1 && loan.monthlyPayment === maxMonthlyPayment && !isBestMonthly && loan.monthlyPayment > 0 ? 'bg-red/20 text-red-800' : '';
+
+
+                const row = SUMMARY_TABLE_BODY.insertRow();
+                row.className = 'hover:bg-gray-50 transition duration-150';
+
+                row.insertCell().textContent = `Opción ${index + 1}`;
+                row.insertCell().textContent = formatCurrency(parseNumericValue(loan.principal), true); // Monto is integer
+                row.insertCell().textContent = formatPercent(parseNumericValue(loan.annualRate, true));
+                row.insertCell().textContent = parseNumericValue(loan.termMonths);
+                
+                // Display the calculated result with 2 decimals
+                row.insertCell().innerHTML = `<div class="px-2 py-1 ${monthlyClass} ${worstMonthly}">${formatCurrency(loan.monthlyPayment, false)}</div>`;
+                // Display the calculated result rounded to integer
+                row.insertCell().innerHTML = `<div class="px-2 py-1 ${costClass} ${worstTotalCost}">${formatCurrency(loan.totalCost, true)}</div>`;
+            });
+        };
+
+        // Developer Note: Renders a single bar chart (Monthly or Total Cost)
+        const renderSingleChart = (elementId, dataKey, maxScaleValue, validLoans) => {
+            const chartElement = document.getElementById(elementId);
+            chartElement.innerHTML = '';
+
+            // Developer Note: Define fixed colors using Hex values for consistent rendering across charts
+            // Opción 1 (Index 0): Sky Blue #00ade1
+            // Opción 2 (Index 1): Green #80b122
+            // Opción 3 (Index 2): Violet #575e9a (FIXED to ensure it renders correctly)
+            const optionColorsHex = ['#00ade1', '#80b122', '#575e9a'];
+
+            validLoans.forEach((loan, index) => {
+                const value = loan[dataKey];
+                const isTotalCost = dataKey === 'totalCost';
+                // Round to integer for Total Cost display in chart, use float for Monthly
+                const displayValue = isTotalCost ? Math.round(value) : value; 
+
+                const heightPercent = (displayValue / maxScaleValue) * 100;
+
+                // Select color based on index.
+                const barColorHex = optionColorsHex[index] || '#9ca3af'; // Fallback to a neutral gray
+                
+                // Display the formatted value above the bar
+                const valueDisplay = `
+                    <div class="text-center mb-1 w-full text-xs font-semibold text-navy">
+                        ${formatCurrency(displayValue, isTotalCost).replace(/\s/g, '').replace('$', '')}
+                    </div>
+                `;
+
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar-group';
+                
+                // The bar itself: Apply color directly via style attribute
+                const barHtml = `
+                    <div style="height: ${heightPercent}%; background-color: ${barColorHex};" 
+                         class="bar shadow-lg" 
+                         title="${isTotalCost ? 'Costo Total' : 'Cuota Mensual'} Opción ${index + 1}: ${formatCurrency(displayValue, isTotalCost)}">
+                    </div>
+                `;
+                
+                // Label at the bottom
+                const label = `<div class="mt-2 text-sm font-semibold text-navy">Opción ${index + 1}</div>`;
+
+                bar.innerHTML = valueDisplay + barHtml + label;
+                chartElement.appendChild(bar);
+            });
+        };
+
+
+        // Developer Note: Updates the dual bar chart for Monthly Payment and Total Cost
+        const updateChart = () => {
+            const validLoans = loans.filter(l => l.monthlyPayment > 0);
+            
+            if (validLoans.length < 2) {
+                CHART_CONTAINER.classList.add('hidden');
+                return;
+            }
+
+            CHART_CONTAINER.classList.remove('hidden');
+
+            // 1. Determine the overall maximum value for consistent scaling across both charts
+            const maxMonthly = Math.max(...validLoans.map(l => l.monthlyPayment));
+            const maxTotalCost = Math.max(...validLoans.map(l => Math.round(l.totalCost))); // Max based on rounded values for Total Cost chart
+            
+            const maxScaleValueMonthly = maxMonthly * 1.1; // 10% buffer for monthly chart
+            const maxScaleValueTotalCost = maxTotalCost * 1.1; // 10% buffer for total cost chart
+            
+            // 2. Render Monthly Payment Chart
+            renderSingleChart(
+                'monthly-chart-bars', 
+                'monthlyPayment', 
+                maxScaleValueMonthly, 
+                validLoans
+            );
+
+            // 3. Render Total Cost Chart
+            renderSingleChart(
+                'total-cost-chart-bars', 
+                'totalCost', 
+                maxScaleValueTotalCost, 
+                validLoans
+            );
+        };
+
+        // Developer Note: Local storage persistence functions
+        const loadLoans = () => {
+            const savedLoans = localStorage.getItem('loanSimulatorLoans');
+            if (savedLoans) {
+                loans = JSON.parse(savedLoans);
+            } else {
+                // Start with two empty loans if none are saved
+                loans = [
+                    { principal: '', annualRate: '', termMonths: '60', interestType: 'Fijo', monthlyPayment: 0, totalCost: 0 },
+                    { principal: '', annualRate: '', termMonths: '48', interestType: 'Fijo', monthlyPayment: 0, totalCost: 0 }
+                ];
+            }
+        };
+
+        const saveLoans = () => {
+            localStorage.setItem('loanSimulatorLoans', JSON.stringify(loans));
+        };
+
+        // Developer Note: Action Handlers
+        ADD_LOAN_BTN.addEventListener('click', addLoan);
+        COMPARE_BTN.addEventListener('click', runComparison);
+
+        // Developer Note: Since the 'Restablecer' button was removed, this function is only available via console or future prompt
+        window.fullReset = () => {
+             if (window.confirm('¿Está seguro de que desea borrar todas las opciones y restablecer la calculadora?')) { 
+                localStorage.removeItem('loanSimulatorLoans');
+                loadLoans();
+                renderLoans();
+                
+                // Hide summary and chart after reset
+                SUMMARY_SECTION.classList.add('hidden');
+                CHART_CONTAINER.classList.add('hidden');
+                SUMMARY_MESSAGE.textContent = 'Presione "Comparar opciones" para ver el resumen de los resultados.';
+                COMPARE_BTN.classList.remove('bg-sky');
+                COMPARE_BTN.classList.add('bg-violet');
+            }
+        };
+
+        // Developer Note: EXPORT FUNCTION REMOVED as requested due to compatibility issues.
+        
+        // Developer Note: Initialize the application on load
+        window.onload = () => {
+            loadLoans();
+            renderLoans();
+            // Developer Note: Ensure summary and chart are hidden on initial load
+            SUMMARY_SECTION.classList.add('hidden');
+            CHART_CONTAINER.classList.add('hidden');
+            SUMMARY_MESSAGE.textContent = 'Presione "Comparar opciones" para ver el resumen de los resultados.';
+            
+            // Set initial color for compare button (ready state, should be different from exported button)
+            COMPARE_BTN.classList.add('bg-sky'); 
+            COMPARE_BTN.classList.remove('bg-violet');
+        };
+
+    </script>
+</body>
+</html>
