@@ -239,7 +239,8 @@
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Tasa anual</th>
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Plazo (meses)</th>
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Cuota mensual est.</th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Costo total del crédito</th>
+                            <!-- Developer Note: Column header updated to reflect total paid -->
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-navy uppercase tracking-wider">Monto total pagado</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200" id="summary-table-body">
@@ -267,10 +268,10 @@
                     <!-- Developer Note: Removed legend/labels as requested -->
                 </div>
 
-                <!-- Chart 2: Costo Total -->
+                <!-- Chart 2: Monto Total Pagado (Updated) -->
                 <div class="chart-container border-t pt-4 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-4 border-gray/80 mt-4 sm:mt-0">
-                    <!-- Developer Note: Removed "(vs Max)" from title -->
-                    <h3 class="text-lg font-semibold text-navy mb-2">Costo total</h3>
+                    <!-- Developer Note: Title updated -->
+                    <h3 class="text-lg font-semibold text-navy mb-2">Monto total pagado</h3>
                     <div id="total-cost-chart-bars" class="chart-bars h-64">
                         <!-- Total Cost chart bars will be rendered here -->
                     </div>
@@ -340,7 +341,7 @@
          * Developer Note: Utility function to format numbers back to Spanish currency style.
          * - Uses period (.) for thousands separator.
          * - Uses comma (,) for decimal separator.
-         * - If `roundToInteger` is true, rounds to 0 decimals (used for Total Cost).
+         * - If `roundToInteger` is true, rounds to 0 decimals (used for Total Cost and Total Paid).
          * - Otherwise, rounds to 2 decimals (used for Monthly Payment).
          */
         const formatCurrency = (number, roundToInteger = false) => {
@@ -352,7 +353,7 @@
             };
 
             if (roundToInteger) {
-                // For Total Cost, round to 0 decimals
+                // For Total Cost and Total Paid, round to 0 decimals
                 options.minimumFractionDigits = 0;
                 options.maximumFractionDigits = 0;
                 number = Math.round(number); // Round the number before formatting
@@ -402,7 +403,8 @@
         // Developer Note: Core loan calculation using the fixed-rate amortization formula
         const calculateLoan = (principal, annualRate, termMonths) => {
             let monthlyPayment = 0;
-            let totalCost = 0;
+            let totalInterest = 0; // The total cost of the loan (interest only)
+            let totalPaid = 0;     // Principal + Total Interest (Total disbursed amount)
 
             if (principal > 0 && annualRate >= 0 && termMonths > 0) {
                 // Developer Note: annualRate is a percentage (e.g., 5.5), so divide by 100 to get rate, then by 12 for monthly
@@ -412,28 +414,32 @@
                 if (r > 0) {
                     monthlyPayment = principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
                 } else {
+                    // Zero interest rate
                     monthlyPayment = principal / n;
                 }
 
-                const totalPaid = monthlyPayment * n;
-                const totalInterest = totalPaid - principal;
-                totalCost = totalInterest;
+                totalPaid = monthlyPayment * n;
+                totalInterest = totalPaid - principal;
 
             } else if (principal > 0 && termMonths > 0) {
+                 // Case for 0 or undefined rate
                  monthlyPayment = principal / termMonths;
-                 totalCost = 0;
+                 totalInterest = 0;
+                 totalPaid = principal;
             }
 
             return {
                 monthlyPayment: monthlyPayment,
-                totalCost: totalCost
+                totalInterest: totalInterest,
+                totalPaid: totalPaid
             };
         };
         
         // Developer Note: Lightweight function to update results display on the specific loan card
-        const updateLoanCardResults = (index, monthlyPayment, totalCost) => {
+        const updateLoanCardResults = (index, monthlyPayment, totalInterest, totalPaid) => {
             const monthlySpan = document.getElementById(`monthly-payment-${index}`);
-            const totalSpan = document.getElementById(`total-cost-${index}`);
+            const interestSpan = document.getElementById(`total-interest-${index}`); // Updated ID for Intereses
+            const paidSpan = document.getElementById(`total-paid-${index}`); // New ID for Total Paid
             
             if (monthlySpan) {
                 // Monthly payment gets 2 decimals
@@ -441,10 +447,16 @@
                 monthlySpan.className = `text-lg font-bold ${monthlyPayment > 0 ? 'text-green' : 'text-violet'}`;
             }
 
-            if (totalSpan) {
-                // Total cost gets 0 decimals (rounded)
-                totalSpan.textContent = formatCurrency(totalCost, true); 
-                totalSpan.className = `text-lg font-bold ${totalCost > 0 ? 'text-red' : 'text-violet'}`;
+            if (interestSpan) {
+                // Total Interest gets 0 decimals (rounded)
+                interestSpan.textContent = formatCurrency(totalInterest, true); 
+                interestSpan.className = `text-lg font-bold ${totalInterest > 0 ? 'text-red' : 'text-violet'}`;
+            }
+
+            if (paidSpan) {
+                // Total Paid gets 0 decimals (rounded)
+                paidSpan.textContent = formatCurrency(totalPaid, true); 
+                paidSpan.className = `text-lg font-bold ${totalPaid > 0 ? 'text-navy' : 'text-violet'}`;
             }
         };
 
@@ -458,18 +470,19 @@
             const annualRate = parseNumericValue(loans[index].annualRate, true); // true for rate (decimal allowed)
             const termMonths = parseNumericValue(loans[index].termMonths);
 
-            const { monthlyPayment, totalCost } = calculateLoan(
+            const { monthlyPayment, totalInterest, totalPaid } = calculateLoan(
                 principal,
                 annualRate,
                 termMonths
             );
 
             loans[index].monthlyPayment = monthlyPayment;
-            loans[index].totalCost = totalCost;
+            loans[index].totalInterest = totalInterest; // Storing Intereses
+            loans[index].totalPaid = totalPaid; // Storing Total Pagado
 
             saveLoans();
             // Developer Note: Only update the results display on the card, not the summary/chart
-            updateLoanCardResults(index, monthlyPayment, totalCost); 
+            updateLoanCardResults(index, monthlyPayment, totalInterest, totalPaid); 
             
             // Developer Note: Hide summary and chart if inputs change, requiring user to re-compare
             SUMMARY_SECTION.classList.add('hidden');
@@ -486,7 +499,7 @@
             card.className = 'loan-card card';
             card.dataset.index = index;
             
-            const { monthlyPayment, totalCost } = loan;
+            const { monthlyPayment, totalInterest, totalPaid } = loan;
 
             // Developer Note: Input fields are created with event listeners for real-time updates and input cleaning
             const inputsHtml = `
@@ -551,23 +564,30 @@
                 </div>
             `;
 
-            // Developer Note: Results section with dynamic formatting (now includes decimals for monthly payment)
+            // Developer Note: Results section updated to show both Total Interest and Total Paid
             const resultsHtml = `
                 <div class="mt-4 pt-4 border-t border-gray/80">
                     <!-- Developer Note: Adjusted header capitalization -->
                     <h3 class="text-xl font-semibold text-sky mb-3">Resultados estimados</h3>
                     <div class="flex justify-between items-center py-2 border-b border-gray">
-                        <!-- Developer Note: Adjusted label capitalization -->
+                        <!-- Cuota Mensual -->
                         <span class="font-medium text-navy">Cuota mensual estimada:</span>
                         <span id="monthly-payment-${index}" class="text-lg font-bold ${monthlyPayment > 0 ? 'text-green' : 'text-violet'}">
                             ${formatCurrency(monthlyPayment, false)}
                         </span>
                     </div>
-                    <div class="flex justify-between items-center py-2">
-                        <!-- Developer Note: Adjusted label capitalization -->
-                        <span class="font-medium text-navy">Costo total del crédito (intereses):</span>
-                        <span id="total-cost-${index}" class="text-lg font-bold ${totalCost > 0 ? 'text-red' : 'text-violet'}">
-                            ${formatCurrency(totalCost, true)}
+                    <div class="flex justify-between items-center py-2 border-b border-gray">
+                        <!-- Intereses Totales (Costo del Crédito) -->
+                        <span class="font-medium text-navy">Intereses totales (Costo del crédito):</span>
+                        <span id="total-interest-${index}" class="text-lg font-bold ${totalInterest > 0 ? 'text-red' : 'text-violet'}">
+                            ${formatCurrency(totalInterest, true)}
+                        </span>
+                    </div>
+                     <div class="flex justify-between items-center py-2">
+                        <!-- Monto Total Pagado (Principal + Intereses) -->
+                        <span class="font-medium text-navy">Monto total pagado (Costo real):</span>
+                        <span id="total-paid-${index}" class="text-xl font-bold text-navy">
+                            ${formatCurrency(totalPaid, true)}
                         </span>
                     </div>
                 </div>
@@ -633,7 +653,8 @@
                     termMonths: '60',
                     interestType: 'Fijo',
                     monthlyPayment: 0,
-                    totalCost: 0
+                    totalInterest: 0, // New field initialized
+                    totalPaid: 0      // New field initialized
                 };
                 loans.push(newLoan);
                 saveLoans();
@@ -653,7 +674,7 @@
             } else {
                  // Reset the last remaining loan instead of deleting the card itself
                  loans[0] = {
-                    principal: '', annualRate: '', termMonths: '60', interestType: 'Fijo', monthlyPayment: 0, totalCost: 0
+                    principal: '', annualRate: '', termMonths: '60', interestType: 'Fijo', monthlyPayment: 0, totalInterest: 0, totalPaid: 0
                  };
             }
             saveLoans();
@@ -700,27 +721,28 @@
 
             // Developer Note: Determine best options for highlighting
             let bestMonthlyPayment = Infinity;
-            let bestTotalCost = Infinity;
+            // Highlight based on the lowest Total Paid (real cost)
+            let bestTotalPaid = Infinity; 
 
             if (validLoans.length > 0) {
                 // Compare based on the actual calculated floating-point values for accuracy
                 bestMonthlyPayment = Math.min(...validLoans.map(l => l.monthlyPayment));
-                bestTotalCost = Math.min(...validLoans.map(l => l.totalCost));
+                bestTotalPaid = Math.min(...validLoans.map(l => l.totalPaid));
             }
 
 
             validLoans.forEach((loan, index) => {
                 const isBestMonthly = loan.monthlyPayment === bestMonthlyPayment && bestMonthlyPayment > 0;
-                const isBestTotalCost = loan.totalCost === bestTotalCost && bestTotalCost >= 0;
+                const isBestTotalPaid = loan.totalPaid === bestTotalPaid && bestTotalPaid >= 0;
                 
                 // For worst calculation, use the actual values
                 const maxMonthlyPayment = Math.max(...validLoans.map(l => l.monthlyPayment));
-                const maxTotalCost = Math.max(...validLoans.map(l => l.totalCost));
+                const maxTotalPaid = Math.max(...validLoans.map(l => l.totalPaid));
 
                 const monthlyClass = isBestMonthly ? 'bg-green/20 text-green-800 font-semibold rounded' : '';
-                const costClass = isBestTotalCost ? 'bg-green/20 text-green-800 font-semibold rounded' : '';
+                const paidClass = isBestTotalPaid ? 'bg-green/20 text-green-800 font-semibold rounded' : ''; // Highlighting Total Paid
                 
-                const worstTotalCost = validLoans.length > 1 && loan.totalCost === maxTotalCost && !isBestTotalCost && loan.totalCost > 0 ? 'bg-red/20 text-red-800' : '';
+                const worstTotalPaid = validLoans.length > 1 && loan.totalPaid === maxTotalPaid && !isBestTotalPaid && loan.totalPaid > 0 ? 'bg-red/20 text-red-800' : '';
                 const worstMonthly = validLoans.length > 1 && loan.monthlyPayment === maxMonthlyPayment && !isBestMonthly && loan.monthlyPayment > 0 ? 'bg-red/20 text-red-800' : '';
 
 
@@ -734,27 +756,30 @@
                 
                 // Display the calculated result with 2 decimals
                 row.insertCell().innerHTML = `<div class="px-2 py-1 ${monthlyClass} ${worstMonthly}">${formatCurrency(loan.monthlyPayment, false)}</div>`;
-                // Display the calculated result rounded to integer
-                row.insertCell().innerHTML = `<div class="px-2 py-1 ${costClass} ${worstTotalCost}">${formatCurrency(loan.totalCost, true)}</div>`;
+                // Display the calculated Total Paid rounded to integer
+                row.insertCell().innerHTML = `<div class="px-2 py-1 ${paidClass} ${worstTotalPaid}">${formatCurrency(loan.totalPaid, true)}</div>`;
             });
         };
 
         // Developer Note: Renders a single bar chart (Monthly or Total Cost)
-        const renderSingleChart = (elementId, dataKey, maxScaleValue, validLoans) => {
+        const renderSingleChart = (elementId, dataKey, maxScaleValue, validLoans, title) => {
             const chartElement = document.getElementById(elementId);
             chartElement.innerHTML = '';
 
             // Developer Note: Define fixed colors using Hex values for consistent rendering across charts
             // Opción 1 (Index 0): Sky Blue #00ade1
             // Opción 2 (Index 1): Green #80b122
-            // Opción 3 (Index 2): Violet #575e9a (FIXED to ensure it renders correctly)
+            // Opción 3 (Index 2): Violet #575e9a
             const optionColorsHex = ['#00ade1', '#80b122', '#575e9a'];
+            
+            // Determine if rounding is needed for display value
+            const shouldRound = dataKey === 'totalPaid';
 
             validLoans.forEach((loan, index) => {
                 const value = loan[dataKey];
-                const isTotalCost = dataKey === 'totalCost';
-                // Round to integer for Total Cost display in chart, use float for Monthly
-                const displayValue = isTotalCost ? Math.round(value) : value; 
+                
+                // Use rounding logic only for the total paid chart
+                const displayValue = shouldRound ? Math.round(value) : value; 
 
                 const heightPercent = (displayValue / maxScaleValue) * 100;
 
@@ -764,7 +789,7 @@
                 // Display the formatted value above the bar
                 const valueDisplay = `
                     <div class="text-center mb-1 w-full text-xs font-semibold text-navy">
-                        ${formatCurrency(displayValue, isTotalCost).replace(/\s/g, '').replace('$', '')}
+                        ${formatCurrency(displayValue, shouldRound).replace(/\s/g, '').replace('$', '')}
                     </div>
                 `;
 
@@ -775,7 +800,7 @@
                 const barHtml = `
                     <div style="height: ${heightPercent}%; background-color: ${barColorHex};" 
                          class="bar shadow-lg" 
-                         title="${isTotalCost ? 'Costo Total' : 'Cuota Mensual'} Opción ${index + 1}: ${formatCurrency(displayValue, isTotalCost)}">
+                         title="${title} Opción ${index + 1}: ${formatCurrency(displayValue, shouldRound)}">
                     </div>
                 `;
                 
@@ -801,25 +826,27 @@
 
             // 1. Determine the overall maximum value for consistent scaling across both charts
             const maxMonthly = Math.max(...validLoans.map(l => l.monthlyPayment));
-            const maxTotalCost = Math.max(...validLoans.map(l => Math.round(l.totalCost))); // Max based on rounded values for Total Cost chart
+            const maxTotalPaid = Math.max(...validLoans.map(l => Math.round(l.totalPaid))); // Max based on rounded values for Total Paid chart
             
             const maxScaleValueMonthly = maxMonthly * 1.1; // 10% buffer for monthly chart
-            const maxScaleValueTotalCost = maxTotalCost * 1.1; // 10% buffer for total cost chart
+            const maxScaleValueTotalPaid = maxTotalPaid * 1.1; // 10% buffer for total paid chart
             
             // 2. Render Monthly Payment Chart
             renderSingleChart(
                 'monthly-chart-bars', 
                 'monthlyPayment', 
                 maxScaleValueMonthly, 
-                validLoans
+                validLoans,
+                'Cuota Mensual'
             );
 
-            // 3. Render Total Cost Chart
+            // 3. Render Total Paid Chart (Updated dataKey and title)
             renderSingleChart(
                 'total-cost-chart-bars', 
-                'totalCost', 
-                maxScaleValueTotalCost, 
-                validLoans
+                'totalPaid', 
+                maxScaleValueTotalPaid, 
+                validLoans,
+                'Monto Total Pagado'
             );
         };
 
@@ -831,8 +858,8 @@
             } else {
                 // Start with two empty loans if none are saved
                 loans = [
-                    { principal: '', annualRate: '', termMonths: '60', interestType: 'Fijo', monthlyPayment: 0, totalCost: 0 },
-                    { principal: '', annualRate: '', termMonths: '48', interestType: 'Fijo', monthlyPayment: 0, totalCost: 0 }
+                    { principal: '', annualRate: '', termMonths: '60', interestType: 'Fijo', monthlyPayment: 0, totalInterest: 0, totalPaid: 0 },
+                    { principal: '', annualRate: '', termMonths: '48', interestType: 'Fijo', monthlyPayment: 0, totalInterest: 0, totalPaid: 0 }
                 ];
             }
         };
