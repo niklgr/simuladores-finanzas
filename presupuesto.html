@@ -2,10 +2,11 @@
     Developer Comments in English.
     All UI elements, labels, and instructional text are in Spanish, as requested.
     This application is fully contained in a single HTML file, using embedded CSS and JavaScript.
-    FIXED: 
-    1. EXPORT FUNCTION: Switched the delimiter to semicolon (;) and changed the downloaded file extension to .csv (with a .xlsx visual label) for maximum compatibility with Latin American Excel settings, which resolves the 'file corrupted' error.
-    2. Feedback messages (updateFeedbackMessage) remain concise and direct.
-    3. Input validation and navigation are fully functional.
+    FINAL VERSION: 
+    1. EXPORT FUNCTION: Uses semicolon (;) delimiter and .csv extension for reliable table opening in Excel/Sheets in Spanish-speaking regions.
+    2. Category separation (Ahorro / Deuda) implemented.
+    3. Tooltips use <strong> for bolding.
+    4. Input validation and navigation are fully functional.
 -->
 <!DOCTYPE html>
 <html lang="es">
@@ -550,13 +551,13 @@
                         <div>
                             Tipo
                             <span class="tooltip-container">
-                                <span class="tooltip-text">Seleccione si el movimiento es un **Ingreso** o un **Gasto**.</span>
+                                <span class="tooltip-text">Seleccione si el movimiento es un <strong>Ingreso</strong> o un <strong>Gasto</strong>.</span>
                             </span>
                         </div>
                         <div>
                             Categoría (50/30/20)
                             <span class="tooltip-container">
-                                <span class="tooltip-text">Clasificación obligatoria para **Gastos** según el modelo 50/30/20.</span>
+                                <span class="tooltip-text">Clasificación obligatoria para <strong>Gastos</strong> según el modelo 50/30/20.</span>
                             </span>
                         </div>
                         <div>
@@ -685,7 +686,8 @@
         const EXPENSE_CATEGORIES = {
             'needs': 'Necesidades (50%)',
             'wants': 'Deseos (30%)',
-            'savings': 'Ahorro/Deuda (20%)'
+            'savings': 'Ahorro (20%)', // Separated from Debt for clearer tracking
+            'debt': 'Deuda (20%)'      // Separated from Savings for clearer tracking
         };
 
         const TRANSACTION_TYPES = {
@@ -698,8 +700,9 @@
             'needs': '#575e9a',    // Violet (Primary Expense)
             'wants': '#ffcd22',    // Yellow (Wants/Discretionary)
             'savings': '#80b122',  // Green (Savings/Positive)
+            'debt': '#da3728',     // Red (Debt Payment)
             'unspent': '#ececec',  // Gray (Unspent/Remaining Income)
-            'overspent': '#da3728' // Red (Overspent/Deficit)
+            'overspent': '#da3728' // Red (Overspent/Deficit) - used in balance check
         };
         
         // --- Tab Control Logic ---
@@ -874,6 +877,7 @@
          * @returns {string} HTML string for the row.
          */
         function createBudgetRowHTML(row) {
+            // Include all four categories for the select dropdown
             const expenseOptions = Object.entries(EXPENSE_CATEGORIES).map(([key, label]) => 
                 `<option value="${key}" ${row.category === key ? 'selected' : ''}>${label}</option>`
             ).join('');
@@ -1000,7 +1004,7 @@
          * Draws the donut chart based on category percentages. (Function is lengthy but unchanged logic-wise, 
          * just ensuring it uses correct font properties for the canvas.)
          */
-        function drawChart(needsPct, wantsPct, savingsPct, totalIncome, totalExpenses) {
+        function drawChart(needsPct, wantsPct, savingsDebtPct, totalIncome, totalExpenses) {
             const canvas = document.getElementById('chart-canvas');
             if (!canvas) return; 
 
@@ -1014,7 +1018,7 @@
             
             ctx.clearRect(0, 0, size, size);
             
-            const totalSpentPct = needsPct + wantsPct + savingsPct;
+            const totalSpentPct = needsPct + wantsPct + savingsDebtPct;
             let finalData = [];
             
             let scaleFactor = totalSpentPct > 1.0 ? 1.0 / totalSpentPct : 1.0;
@@ -1022,7 +1026,8 @@
             // Build the data array for the chart segments
             finalData.push({ percent: needsPct * scaleFactor, color: CHART_COLORS.needs, label: 'Necesidades' });
             finalData.push({ percent: wantsPct * scaleFactor, color: CHART_COLORS.wants, label: 'Deseos' });
-            finalData.push({ percent: savingsPct * scaleFactor, color: CHART_COLORS.savings, label: 'Ahorro' });
+            // Use the combined Savings/Debt percentage for the chart slice
+            finalData.push({ percent: savingsDebtPct * scaleFactor, color: CHART_COLORS.savings, label: 'Ahorro/Deuda' }); 
 
             // Add 'Unspent' portion if total consumption is less than 100% of income
             if (totalSpentPct < 1.0) {
@@ -1083,13 +1088,14 @@
          * Generates and displays the friendly feedback message based on 50/30/20 compliance.
          * **SIMPLIFIED FOR BREVITY AND DIRECTNESS**
          * @param {number} totalIncome - Total calculated income.
-         * @param {Object} categoryPcts - Object containing needs, wants, and savings percentages (0 to 1).
+         * @param {Object} categoryPcts - Object containing needs, wants, and savingsDebt percentages (0 to 1).
          * @param {number} balance - Monthly balance.
          */
         function updateFeedbackMessage(totalIncome, categoryPcts, balance) {
             const needsP = categoryPcts.needs;
             const wantsP = categoryPcts.wants;
-            const savingsP = categoryPcts.savings;
+            // Use the combined savings/debt percentage for the 20% check
+            const savingsDebtP = categoryPcts.savingsDebt; 
             const $msgEl = document.getElementById('feedback-message');
             
             let message = '';
@@ -1106,7 +1112,7 @@
             } else {
                 // Check 50% Needs
                 if (needsP > 0.5 + buffer) {
-                    complianceProblems.push(`- **Necesidades:** Te estás excediendo del 50% ideal (${formatPercentage(needsP)}). Revisa gastos fijos.`);
+                    complianceProblems.push(`- **Necesidades:** Excedes el 50% ideal (${formatPercentage(needsP)}). Revisa gastos fijos esenciales.`);
                 }
                 
                 // Check 30% Wants
@@ -1115,10 +1121,10 @@
                 }
                 
                 // Check 20% Savings/Debt
-                if (savingsP < 0.2 - buffer) {
-                    complianceProblems.push(`- **Ahorro/Deuda:** Estás por debajo del 20% ideal (${formatPercentage(savingsP)}). Incrementa tu ahorro o pago de deudas.`);
-                } else if (savingsP > 0.2 + buffer) {
-                    complianceProblems.push(`¡**Excelente Ahorro!** Estás destinando más del 20% recomendado (${formatPercentage(savingsP)}).`);
+                if (savingsDebtP < 0.2 - buffer) {
+                    complianceProblems.push(`- **Ahorro/Deuda:** Estás por debajo del 20% ideal (${formatPercentage(savingsDebtP)}). Incrementa tu ahorro o pago de deudas.`);
+                } else if (savingsDebtP > 0.2 + buffer) {
+                    complianceProblems.push(`- ¡**Excelente Ahorro!** Estás destinando más del 20% recomendado (${formatPercentage(savingsDebtP)}).`);
                 }
                 
                 // --- Final Message Logic ---
@@ -1127,16 +1133,16 @@
                     
                     if (complianceProblems.length === 1 && excellentSavings) {
                         className = 'feedback-positive';
-                        message = `¡Felicidades! ${excellentSavings.replace('¡Excelente Ahorro! ', '')}`;
+                        message = `**¡Felicidades!** Estás en buen camino. ${excellentSavings.replace('- ', '• ')}`;
                     } else if (excellentSavings) {
                         className = 'feedback-warning';
-                        let baseMsg = `**¡Logros y ajustes!** Tienes un buen ahorro, pero optimiza lo siguiente:\n`;
-                        baseMsg += complianceProblems.filter(msg => !msg.includes('¡Excelente Ahorro!')).join('\n');
-                        baseMsg += `\n${excellentSavings.replace('-', '•')}`;
+                        let baseMsg = `**¡Logros y ajustes!** Tienes un excelente ahorro, pero optimiza lo siguiente:\n`;
+                        baseMsg += complianceProblems.filter(msg => !msg.includes('¡Excelente Ahorro!')).join('\n').replace(/^-/gm, '•');
+                        baseMsg += `\n${excellentSavings.replace('- ', '• ')}`;
                         message = baseMsg;
                     } else {
                         className = 'feedback-warning';
-                        message = `**¡Oportunidades de mejora!** Tu distribución está desbalanceada. Te recomendamos revisar:\n` + complianceProblems.join('\n');
+                        message = `**¡Oportunidades de mejora!** Tu distribución está desbalanceada. Te recomendamos revisar:\n` + complianceProblems.join('\n').replace(/^-/gm, '•');
                     }
                 } else {
                     className = 'feedback-positive';
@@ -1151,7 +1157,7 @@
             message = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             
             // Convert newline characters for multi-line display, replacing list markers where needed
-            $msgEl.innerHTML = message.replace(/\n/g, '<br>').replace(/^-/gm, '•');
+            $msgEl.innerHTML = message.replace(/\n/g, '<br>');
         }
 
 
@@ -1163,7 +1169,7 @@
         function updateTotals() {
             let totalIncome = 0;
             let totalExpenses = 0;
-            const categoryTotals = { needs: 0, wants: 0, savings: 0 };
+            const categoryTotals = { needs: 0, wants: 0, savings: 0, debt: 0 };
             
             // 1. Calculate Total Income and Total Expenses
             budgetData.forEach(row => {
@@ -1180,14 +1186,18 @@
                 }
             });
             
+            // Combine Savings and Debt for the 20% rule analysis and display
+            const savingsDebtTotal = categoryTotals.savings + categoryTotals.debt;
+
             // 2. Calculate Balance
             const balance = totalIncome - totalExpenses;
             
-            // 3. Calculate Percentages
+            // 3. Calculate Percentages (Need separate percentages for chart/list)
             const categoryPcts = {
                 needs: totalIncome > 0 ? categoryTotals.needs / totalIncome : 0,
                 wants: totalIncome > 0 ? categoryTotals.wants / totalIncome : 0,
-                savings: totalIncome > 0 ? categoryTotals.savings / totalIncome : 0
+                // The combined percentage for the 20% rule check and chart slice
+                savingsDebt: totalIncome > 0 ? savingsDebtTotal / totalIncome : 0
             };
 
             // 4. Update Summary Dashboard
@@ -1213,7 +1223,7 @@
             }
             
             // 5. Update 50/30/20 Breakdown List
-            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings;
+            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings + categoryTotals.debt;
             document.getElementById('category-sum').textContent = formatCurrency(totalCategorized);
 
             // Function to update breakdown list display
@@ -1237,10 +1247,11 @@
             // 50% Needs, 30% Wants, 20% Savings/Debt
             updateCategoryDisplay('needs', categoryTotals.needs, 0.5, categoryPcts.needs);
             updateCategoryDisplay('wants', categoryTotals.wants, 0.3, categoryPcts.wants);
-            updateCategoryDisplay('savings', categoryTotals.savings, 0.2, categoryPcts.savings);
+            // Use the combined savings/debt total for the display line
+            updateCategoryDisplay('savings', savingsDebtTotal, 0.2, categoryPcts.savingsDebt); 
             
             // 6. Update Chart and Feedback
-            drawChart(categoryPcts.needs, categoryPcts.wants, categoryPcts.savings, totalIncome, totalExpenses);
+            drawChart(categoryPcts.needs, categoryPcts.wants, categoryPcts.savingsDebt, totalIncome, totalExpenses);
             updateFeedbackMessage(totalIncome, categoryPcts, balance);
 
             // Save data after calculation completes
@@ -1250,14 +1261,15 @@
         // --- Export Functionality (Using CSV for robustness) ---
 
         /**
-         * Cleans a string for safe use within a CSV cell (handling commas and quotes).
+         * Cleans a string for safe use within a CSV cell (handling commas, newlines, and the delimiter ';').
          * @param {string} str - The string to clean.
          * @returns {string} The CSV-safe string.
          */
         function csvClean(str) {
+            // Ensure str is a string and replace double quotes with two double quotes.
             if (typeof str === 'number') return str;
-            // Replace double quotes with two double quotes, then wrap the whole string in quotes if it contains the delimiter (;) or a newline.
             str = String(str).replace(/"/g, '""');
+            // If the string contains the delimiter (;) or a newline, wrap the whole string in quotes.
             if (str.includes(';') || str.includes('\n') || str.includes('\r')) {
                 return `"${str}"`;
             }
@@ -1266,7 +1278,7 @@
 
         /**
          * Exports the current budget data and summary as a highly compatible CSV file, 
-         * using the .xlsx extension for better Excel opening experience.
+         * using the .csv extension and semicolon delimiter.
          */
         function exportToXLSX() {
             // Use SEMICOLON as delimiter (standard for CSV in many Latin American Excel localizations)
@@ -1276,37 +1288,21 @@
             const totalIncome = budgetData.filter(r => r.type === 'income').reduce((sum, row) => sum + parseValue(row.amount), 0);
             const totalExpenses = budgetData.filter(r => r.type === 'expense').reduce((sum, row) => sum + parseValue(row.amount), 0);
             const balance = totalIncome - totalExpenses;
-            const categoryTotals = { needs: 0, wants: 0, savings: 0 };
+            const categoryTotals = { needs: 0, wants: 0, savings: 0, debt: 0 }; // Separate totals
             budgetData.filter(r => r.type === 'expense').forEach(row => {
                 if (categoryTotals.hasOwnProperty(row.category)) {
                     categoryTotals[row.category] += parseValue(row.amount);
                 }
             });
+            const savingsDebtTotal = categoryTotals.savings + categoryTotals.debt; // Combined total for 20% rule
             const needsPct = totalIncome > 0 ? categoryTotals.needs / totalIncome : 0;
             const wantsPct = totalIncome > 0 ? categoryTotals.wants / totalIncome : 0;
-            const savingsPct = totalIncome > 0 ? categoryTotals.savings / totalIncome : 0;
-            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings;
+            const savingsDebtPct = totalIncome > 0 ? savingsDebtTotal / totalIncome : 0;
+            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings + categoryTotals.debt;
 
             let csvContent = '';
 
-            // --- 2. Summary Section ---
-            csvContent += csvClean('RESUMEN GENERAL') + DELIMITER + DELIMITER + '\n';
-            csvContent += csvClean('Ingresos Totales') + DELIMITER + totalIncome + DELIMITER + '\n';
-            csvContent += csvClean('Gastos Totales') + DELIMITER + totalExpenses + DELIMITER + '\n';
-            csvContent += csvClean('Balance Mensual') + DELIMITER + balance + DELIMITER + '\n';
-            csvContent += '\n';
-
-            // --- 3. 50/30/20 Breakdown Section ---
-            csvContent += csvClean('DISTRIBUCIÓN 50/30/20') + DELIMITER + DELIMITER + DELIMITER + DELIMITER + '\n';
-            csvContent += csvClean('Categoría') + DELIMITER + csvClean('Gasto Real ($)') + DELIMITER + csvClean('% Ingreso Total') + DELIMITER + csvClean('Meta Ideal') + '\n';
-
-            csvContent += csvClean('Necesidades (50%)') + DELIMITER + categoryTotals.needs + DELIMITER + needsPct + DELIMITER + csvClean('50%') + '\n';
-            csvContent += csvClean('Deseos (30%)') + DELIMITER + categoryTotals.wants + DELIMITER + wantsPct + DELIMITER + csvClean('30%') + '\n';
-            csvContent += csvClean('Ahorro/Deuda (20%)') + DELIMITER + categoryTotals.savings + DELIMITER + savingsPct + DELIMITER + csvClean('20%') + '\n';
-            csvContent += csvClean('Total Categorizado') + DELIMITER + totalCategorized + DELIMITER + DELIMITER + '\n';
-            csvContent += '\n';
-
-            // --- 4. Detail Data Section ---
+            // --- 2. Detail Data Section (FIRST in export) ---
             csvContent += csvClean('REGISTRO DE MOVIMIENTOS') + DELIMITER + DELIMITER + DELIMITER + DELIMITER + '\n';
             csvContent += csvClean('Tipo') + DELIMITER + csvClean('Categoría (50/30/20)') + DELIMITER + csvClean('Descripción') + DELIMITER + csvClean('Monto ($)') + '\n';
 
@@ -1317,6 +1313,28 @@
                 
                 csvContent += csvClean(typeLabel) + DELIMITER + csvClean(categoryLabel) + DELIMITER + csvClean(row.desc) + DELIMITER + amount + '\n';
             });
+            csvContent += '\n';
+
+
+            // --- 3. Summary Section ---
+            csvContent += csvClean('RESUMEN GENERAL') + DELIMITER + DELIMITER + '\n';
+            csvContent += csvClean('Ingresos Totales') + DELIMITER + totalIncome + DELIMITER + '\n';
+            csvContent += csvClean('Gastos Totales') + DELIMITER + totalExpenses + DELIMITER + '\n';
+            csvContent += csvClean('Balance Mensual') + DELIMITER + balance + DELIMITER + '\n';
+            csvContent += '\n';
+
+            // --- 4. 50/30/20 Breakdown Section ---
+            csvContent += csvClean('DISTRIBUCIÓN 50/30/20') + DELIMITER + DELIMITER + DELIMITER + DELIMITER + '\n';
+            csvContent += csvClean('Categoría') + DELIMITER + csvClean('Gasto Real ($)') + DELIMITER + csvClean('% Ingreso Total') + DELIMITER + csvClean('Meta Ideal') + '\n';
+
+            // Note: Saving separate Savings/Debt totals but using combined pct for analysis
+            csvContent += csvClean('Necesidades (50%)') + DELIMITER + categoryTotals.needs + DELIMITER + needsPct + DELIMITER + csvClean('50%') + '\n';
+            csvContent += csvClean('Deseos (30%)') + DELIMITER + categoryTotals.wants + DELIMITER + wantsPct + DELIMITER + csvClean('30%') + '\n';
+            csvContent += csvClean('Ahorro (20%)') + DELIMITER + categoryTotals.savings + DELIMITER + DELIMITER + '\n';
+            csvContent += csvClean('Deuda (20%)') + DELIMITER + categoryTotals.debt + DELIMITER + DELIMITER + '\n';
+            csvContent += csvClean('Total Ahorro/Deuda (Combinado)') + DELIMITER + savingsDebtTotal + DELIMITER + savingsDebtPct + DELIMITER + csvClean('20%') + '\n';
+            csvContent += csvClean('Total Gastos Categorizados') + DELIMITER + totalCategorized + DELIMITER + DELIMITER + '\n';
+            csvContent += '\n';
 
             // Create Blob with UTF-8 BOM for proper character handling in Excel
             const BOM = "\uFEFF"; 
@@ -1328,21 +1346,21 @@
             const url = URL.createObjectURL(blob);
             
             link.setAttribute("href", url);
-            // Crucial: Use .csv extension now. Excel or Sheets will open it correctly based on the semicolon delimiter.
+            // Download as .csv for reliable table import
             link.setAttribute("download", "presupuesto_mensual.csv"); 
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            // OPTIONAL: Inform the user about the change
-            alert("El archivo se ha descargado como 'presupuesto_mensual.csv'. Por favor, ábrelo o impórtalo en Excel. (Se usa el punto y coma ';' como separador para asegurar la compatibilidad regional).");
+            // Inform the user about the change
+            alert("El archivo se ha descargado como 'presupuesto_mensual.csv'. Por favor, ábrelo o impórtalo en Excel/Sheets. (Se usa el punto y coma ';' como separador para asegurar la compatibilidad regional).");
         }
 
         // --- Initial Load ---
         window.onload = () => {
             loadData();
-            // Manually activate the first tab on load, in case of browser inconsistencies
+            // Manually activate the first tab on load
             const defaultTab = document.querySelector('#tab-registro');
             if (defaultTab) {
                 // The openTab function expects an event object, we simulate it for initialization
