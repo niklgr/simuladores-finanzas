@@ -225,7 +225,7 @@
                                         <span class="tooltip-content" role="tooltip">Ahorro que ya tienes al comenzar. Se distribuye automáticamente entre los fondos según 2-1-1.</span>
                                     </span>
                                 </label>
-                                <input type="number" id="saldoInicial" min="0" value="0" class="input-field" required>
+                                <input type="number" id="saldoInicial" min="0" value="120000" class="input-field" required>
                                 <p id="error-saldoInicial" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Saldo inicial debe ser $\ge 0$.</p>
                             </div>
 
@@ -238,7 +238,7 @@
                                         <span class="tooltip-content" role="tooltip">Dinero fijo que sumas cada mes a tu inversión total. Se reparte entre los tres fondos según 2-1-1.</span>
                                     </span>
                                 </label>
-                                <input type="number" id="aporteMensual" data-testid="input-ingreso" min="0" value="100000" class="input-field" required>
+                                <input type="number" id="aporteMensual" data-testid="input-ingreso" min="0" value="50000" class="input-field" required>
                                 <p id="error-aporteMensual" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Aporte debe ser $\ge 0$.</p>
                             </div>
                             
@@ -261,10 +261,10 @@
                                     Interés mensual promedio (%)
                                     <span class="tooltip ml-1 text-gray-500 hover:text-indigo-900 transition-colors">
                                         <i class="ph ph-info text-base align-middle"></i>
-                                        <span class="tooltip-content" role="tooltip">Rendimiento estimado mensual que se aplica sobre los saldos acumulados. Ej.: $0,5$ = $0.5$ % mensual.</span>
+                                        <span class="tooltip-content" role="tooltip">Rendimiento (en porcentaje) que se aplica sobre los saldos de cada fondo cada mes.</span>
                                     </span>
                                 </label>
-                                <input type="number" id="interesMensual" min="0" max="100" step="0.01" value="0.5" class="input-field" required>
+                                <input type="number" id="interesMensual" min="0" max="100" step="0.01" value="5" class="input-field" required>
                                 <p id="error-interesMensual" class="text-xs mt-1 msg-error p-1 rounded-md hidden">Interés debe ser $\ge 0$ y $\le 100$.</p>
                             </div>
                         </div>
@@ -301,7 +301,22 @@
                     </div>
 
                     <!-- Mensajes de Estado -->
-                    <div id="status-message" class="p-3 rounded-md hidden" role="status" aria-live="assertive"></div>
+                    <div id="status-message" class="p-3 rounded-md hidden mb-4" role="status" aria-live="assertive"></div>
+                    
+                    <!-- PREVIEW ESTRUCTURAL DE RESULTADOS (Siempre visible, solo el contenido numérico cambia) -->
+                    <div id="results-preview" class="card space-y-3 pt-4 border-t border-gray-200">
+                        <h3 class="text-xl font-bold" style="color: var(--color-indigo-900);">Resultados de la simulación</h3>
+                        
+                        <div id="preview-content">
+                            <!-- Contenido inyectado por JS: Resumen numérico o mensaje de invitación -->
+                        </div>
+                        
+                        <!-- Estructura de resultados que se mostrarán al desplazarse (preview estático) -->
+                        <ul class="space-y-1 text-base text-gray-700 italic border-t border-gray-100 pt-3">
+                            <li class="flex items-center"><i class="ph ph-chart-line text-lg mr-2 text-cyan-500"></i> Gráfico de evolución mensual</li>
+                            <li class="flex items-center"><i class="ph ph-table text-lg mr-2 text-cyan-500"></i> Tabla de resultados mensuales</li>
+                        </ul>
+                    </div>
 
                 </form>
             </div>
@@ -309,7 +324,7 @@
             <!-- Columna de Resumen (Derecha, Fija) -->
             <div id="fixed-summary" class="lg:col-span-1 h-fit card space-y-4">
                 <!-- Título del resumen -->
-                <h2 class="text-xl font-bold" style="color: var(--color-indigo-900);">Totales acumulados (final)</h2>
+                <h2 class="text-xl font-bold" style="color: var(--color-indigo-900);">Totales acumulados</h2>
                 <div id="totales-acumulados" class="space-y-3">
                     <p class="text-sm text-dark-brand">Presiona "Calcular simulación" para ver los resultados.</p>
                 </div>
@@ -359,10 +374,10 @@
         const STORAGE_KEY = 'simulador211:v1';
         const DEFAULT_STATE = {
             general: {
-                saldoInicial: 0,
+                saldoInicial: 120000, // Ajustado a 120000
                 periodoMeses: 24,
-                interesMensual: 0.5, // 0.5%
-                aporteMensual: 100000, // Inversión recurrente
+                interesMensual: 5, // Ajustado a 5%
+                aporteMensual: 50000, // Ajustado a 50000
             },
             funds: [
                 { id: 'emergencia', name: 'Emergencia', percentage: 50, color: '#1d2a4e' }, // Indigo-900
@@ -506,6 +521,9 @@
             renderForm();
             renderSummary();
             hideResults();
+            // Aseguramos que el preview estructural aparezca de nuevo al reiniciar
+            document.getElementById('results-preview').classList.remove('hidden'); 
+            renderPreview(false); // Muestra el preview en estado inicial
             updateStatusMessage('Simulación reiniciada a valores por defecto.', 'warning');
         };
 
@@ -665,7 +683,7 @@
         const updateStatusMessage = (message, type) => {
             const msgElement = document.getElementById('status-message');
             msgElement.innerHTML = `<i class="ph-fill ph-${type === 'error' ? 'x-circle' : (type === 'success' ? 'check-circle' : 'warning')} text-lg mr-1"></i> ${message}`;
-            msgElement.className = `p-3 rounded-md msg-${type}`;
+            msgElement.className = `p-3 rounded-md msg-${type} mb-4`;
             msgElement.classList.remove('hidden');
             setTimeout(() => msgElement.classList.add('hidden'), 5000);
         };
@@ -680,6 +698,7 @@
             if (!validateAll()) {
                 updateStatusMessage('Error: revisa los valores ingresados. La simulación no pudo calcularse.', 'error');
                 hideResults();
+                renderPreview(false); // Vuelve al estado inicial si hay error
                 return;
             }
 
@@ -744,17 +763,25 @@
 
             // Renderizar los resultados
             renderResults();
+            
+            // Ocultamos la tarjeta de preview completamente, ya que los resultados completos son visibles abajo
+            document.getElementById('results-preview').classList.add('hidden'); 
+            
             updateStatusMessage('Simulación completada correctamente.', 'success');
         };
 
         // --- RENDERIZADO DE RESULTADOS ---
 
         /**
-         * @description Oculta la sección de resultados (gráfico y tabla).
+         * @description Oculta la sección de resultados (gráfico y tabla) y el preview.
          */
         const hideResults = () => {
             document.getElementById('resultados').classList.add('hidden');
             document.getElementById('totales-acumulados').innerHTML = `<p class="text-sm text-dark-brand">Presiona "Calcular simulación" para ver los resultados.</p>`;
+            
+            // Aseguramos que el preview estructural aparezca de nuevo (estado pre-cálculo)
+            document.getElementById('results-preview').classList.remove('hidden'); 
+            renderPreview(false); 
         }
 
         /**
@@ -766,6 +793,26 @@
             renderChart();
             renderTable();
         };
+        
+        /**
+         * @description Renderiza la sección de preview de resultados (debajo de los botones).
+         * @param {boolean} hasResults - Indica si debe mostrar los valores (true) o solo la estructura (false).
+         */
+        const renderPreview = (hasResults = false) => {
+            const contentDiv = document.getElementById('preview-content');
+
+            // En el estado inicial (pre-cálculo) mostramos el mensaje que invita a calcular.
+            if (!hasResults) {
+                contentDiv.innerHTML = `
+                    <p class="text-base text-dark-brand">Calcula la simulación para generar el resumen numérico y los detalles:</p>
+                `;
+            } else {
+                // Si hay resultados, no inyectamos contenido numérico, el div queda vacío 
+                // para que solo se vea la lista estática (Gráfico/Tabla).
+                contentDiv.innerHTML = '';
+            }
+        };
+
 
         /**
          * @description Renderiza la tarjeta de Totales Acumulados.
@@ -980,10 +1027,10 @@
             });
         };
 
-        // --- EXPORTAR XLSX (Reemplaza CSV) ---
+        // --- EXPORTAR XLSX (Corregido a CSV) ---
 
         /**
-         * @description Exporta los resultados de la simulación a un archivo XLSX (CSV con extensión .xlsx).
+         * @description Exporta los resultados de la simulación a un archivo CSV.
          */
         const exportarXLSX = () => {
             if (!state.results || state.results.length === 0) {
@@ -1025,7 +1072,7 @@
             if (link.download !== undefined) {
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
-                link.setAttribute('download', 'simulacion_ahorro_211.csv'); // CAMBIADO a .csv
+                link.setAttribute('download', 'simulacion_ahorro_211.csv'); // Extensión .csv para evitar el error de formato en Excel
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
@@ -1043,7 +1090,7 @@
          */
         const setupEventListeners = () => {
             document.getElementById('boton-calcular').addEventListener('click', recalcular);
-            document.getElementById('boton-exportar').addEventListener('click', exportarXLSX); // Cambiado
+            document.getElementById('boton-exportar').addEventListener('click', exportarXLSX); 
             document.getElementById('boton-reiniciar').addEventListener('click', reiniciar);
         };
         
@@ -1052,7 +1099,7 @@
             load,
             getState,
             recalcular,
-            exportarXLSX, // Cambiado
+            exportarXLSX,
             reiniciar
         };
 
@@ -1060,6 +1107,8 @@
         window.onload = () => {
             load(); // Carga el estado guardado o por defecto
             setupEventListeners();
+            document.getElementById('results-preview').classList.remove('hidden'); 
+            renderPreview(false); // Muestra la estructura de resultados al inicio
         };
 
     </script>
