@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Retornos</title>
+    <!-- Google Font: Lexend -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Variables for Umine Brand Palette */
+        :root {
+            --color-navy: #1d2a4e;
+            --color-sky-blue: #00ade1;
+            --color-yellow: #ffcd22;
+            --color-green: #80b122;
+            --color-gray-bg: #ececec;
+            --color-red: #da3728;
+            --color-violet: #575e9a;
+            --color-text: #333;
+            --color-white: #ffffff;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.08);
+            --border-radius: 12px;
+        }
+
+        /* Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            font-family: 'Lexend', sans-serif;
+            background-color: var(--color-gray-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            padding: 2rem;
+        }
+
+        h1, h2, h3 {
+            color: var(--color-navy);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem; /* Adjusted */
+        }
+        
+        /* Narrative Subtitle */
+        h2.subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--color-violet);
+            font-weight: 400;
+            margin-bottom: 2rem;
+            border-bottom: none; /* Override */
+            padding-bottom: 0; /* Override */
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid var(--color-sky-blue);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+        
+        h3 {
+            font-size: 1.1rem;
+            color: var(--color-violet);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Main Layout */
+        .simulador-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Mobile default */
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Desktop Layout (2 columns) */
+        @media (min-width: 1024px) {
+            .simulador-container {
+                grid-template-columns: 400px 1fr; /* Inputs left, Results right */
+            }
+        }
+
+        /* Panels (Cards) */
+        .panel {
+            background: var(--color-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+        }
+
+        .panel-inputs {
+            position: sticky;
+            top: 2rem;
+            align-self: start;
+        }
+
+        .panel-resultados {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .result-card {
+            background: var(--color-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+
+        /* Input Form Styles */
+        #ciForm {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-group label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--color-navy);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-group input[type="text"],
+        .input-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Lexend', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-group input[type="text"]:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--color-sky-blue);
+            box-shadow: 0 0 0 3px rgba(0, 173, 225, 0.2);
+        }
+        
+        /* Special layout for time inputs */
+        .time-input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 0.5rem;
+        }
+
+        /* Tooltip Styles - UPDATED */
+        .tooltip {
+            position: relative;
+            cursor: pointer;
+            color: var(--color-white); /* Text color (white !) */
+            background-color: var(--color-sky-blue); /* Solid blue circle */
+            border-radius: 50%; /* Make it a circle */
+            width: 20px; /* Fixed size */
+            height: 20px; /* Fixed size */
+            display: inline-flex; /* To center the ! */
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            line-height: 1;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: var(--color-navy);
+            color: var(--color-white);
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.85rem;
+            font-weight: 400;
+            line-height: 1.4;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Disclaimer Note */
+        .disclaimer {
+            font-size: 0.85rem;
+            color: var(--color-violet);
+            background-color: #f7f7f9;
+            padding: 0.75rem;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: var(--color-violet);
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 0.85rem 1.5rem;
+            font-family: 'Lexend', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--color-sky-blue);
+            color: var(--color-white);
+        }
+
+        .btn-primary:hover {
+            background-color: #009bcc;
+            box-shadow: 0 4px 10px rgba(0, 173, 225, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: var(--color-violet);
+            color: var(--color-white);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #4a5083;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        @media (min-width: 480px) {
+            .button-group {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .button-group:has(:only-child) {
+            grid-template-columns: 1fr;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+
+        /* Summary Panel */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .summary-box {
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            text-align: left;
+        }
+        
+        .summary-box h3 {
+            margin-bottom: 0.5rem;
+            color: var(--color-violet);
+            font-size: 1rem;
+        }
+        
+        .summary-box p {
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+        
+        .summary-box-green {
+            background-color: #f0f9e6;
+            color: var(--color-green);
+        }
+        .summary-box-green p { color: var(--color-green); }
+        
+        .summary-box-blue {
+            background-color: #e6f7fc;
+            color: var(--color-sky-blue);
+        }
+        .summary-box-blue p { color: var(--color-sky-blue); }
+        
+        .summary-box-navy {
+            background-color: #e8eaf0;
+            color: var(--color-navy);
+        }
+        .summary-box-navy p { color: var(--color-navy); }
+        
+        .summary-box-yellow {
+            background-color: #fff9e9;
+            color: #d9a200;
+        }
+        .summary-box-yellow p { color: #d9a200; }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+
+        #growthChart {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Table Container */
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid var(--color-gray-bg);
+            border-radius: 8px;
+        }
+
+        #resultsTable {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+        }
+        
+        #resultsTable thead {
+            position: sticky;
+            top: 0;
+            background-color: var(--color-navy);
+            color: var(--color-white);
+            z-index: 1;
+        }
+        
+        #resultsTable th, #resultsTable td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--color-gray-bg);
+        }
+        
+        #resultsTable th:first-child, #resultsTable td:first-child {
+            text-align: left;
+        }
+
+        #resultsTable tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        #resultsTable tbody tr:hover {
+            background-color: #f0f7ff;
+        }
+        
+        /* Error Message */
+        .error-message {
+            display: none;
+            color: var(--color-red);
+            background-color: #fdeeee;
+            border: 1px solid var(--color-red);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Simulador de retornos</h1>
+    <h2 class="subtitle">Haz que tu dinero trabaje para ti, como Valentina.</h2>
+
+    <main class="simulador-container">
+        
+        <!-- ========================== -->
+        <!--      PANEL DE INPUTS       -->
+        <!-- ========================== -->
+        <aside class="panel panel-inputs">
+            <h2>Configura tu simulación</h2>
+            <form id="ciForm">
+                
+                <div class="input-group">
+                    <label for="initialAmount">Inversión inicial ($)
+                        <span class="tooltip">i
+                            <span class="tooltip-text">La cantidad de dinero con la que comienzas tu inversión.</span>
+                        </span>
+                    </label>
+                    <input type="text" id="initialAmount" placeholder="Ej: 1000">
+                </div>
+                
+                <div class="input-group">
+                    <label for="periodicContribution" id="contributionLabel">Aporte periódico ($)
+                        <span class="tooltip">i
+                            <span class="tooltip-text">La cantidad fija que planeas añadir a tu inversión en cada periodo (ej. mensual, anual).</span>
+                        </span>
+                    </label>
+                    <input type="text" id="periodicContribution" placeholder="Ej: 100">
+                </div>
+
+                <div class="input-group">
+                    <label for="annualRate">Retorno anual estimado (%)
+                        <span class="tooltip">i
+                            <span class="tooltip-text">La rentabilidad anual que esperas ganar (ej. 9% como Valentina).</span>
+                        </span>
+                    </label>
+                    <input type="text" id="annualRate" placeholder="Ej: 9">
+                </div>
+
+                <div class="input-group">
+                    <label for="capitalizationFrequency">Frecuencia del aporte
+                        <span class="tooltip">i
+                            <span class="tooltip-text">La frecuencia con la que realizarás tus aportes periódicos.</span>
+                        </span>
+                    </label>
+                    <select id="capitalizationFrequency">
+                        <option value="12" selected>Mensual</option>
+                        <option value="4">Trimestral</option>
+                        <option value="2">Semestral</option>
+                        <option value="1">Anual</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="timeValue">Plazo de inversión
+                        <span class="tooltip">i
+                            <span class="tooltip-text">El número total de meses o años que planeas mantener la inversión.</span>
+                        </span>
+                    </label>
+                    <div class="time-input-group">
+                        <input type="text" id="timeValue" placeholder="Ej: 10">
+                        <select id="timeUnit">
+                            <option value="años" selected>Años</option>
+                            <option value="meses">Meses</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- <div class="disclaimer">
+                    Usa punto o coma para el retorno. Los otros montos son enteros.
+                </div> -->
+                
+                <div class="button-group">
+                    <button type="button" id="reiniciarBtn" class="btn btn-secondary">Reiniciar</button>
+                    <button type="button" id="simularBtn" class="btn btn-primary">Simular</button>
+                </div>
+                
+                <div id="errorMessage" class="error-message"></div>
+
+            </form>
+        </aside>
+
+        <!-- ============================ -->
+        <!--     PANEL DE RESULTADOS      -->
+        <!-- ============================ -->
+        <section class="panel-resultados">
+            
+            <!-- Resumen -->
+            <div id="summary" class="result-card">
+                <h2>Proyección de tu inversión</h2>
+                <div class="summary-grid">
+                    <div class="summary-box summary-box-green">
+                        <h3>Valor total proyectado</h3>
+                        <p id="futureValue">$0</p>
+                    </div>
+                    <div class="summary-box summary-box-navy">
+                        <h3>Total invertido</h3>
+                        <p id="totalContributed">$0</p>
+                    </div>
+                    <div class="summary-box summary-box-yellow">
+                        <h3>Ganancia total (retornos)</h3>
+                        <p id="totalInterest">$0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico -->
+            <div class="result-card">
+                <h2>Proyección en el tiempo</h2>
+                <div class="chart-container">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Tabla -->
+            <div class="result-card">
+                <h2>Detalle de la proyección</h2>
+                <div class="table-container">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Período</th>
+                                <th>Saldo inicial</th>
+                                <th>Aporte</th>
+                                <th>Retorno generado</th>
+                                <th>Saldo final</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Las filas se generan dinámicamente con JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+    
+    <footer class="footer-note">
+        Esta herramienta es informativa y no constituye asesoría financiera.
+    </footer>
+
+    <script>
+        // Wait for the DOM to be fully loaded before running scripts
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- DOM Element References ---
+            const form = document.getElementById('ciForm');
+            const initialAmountInput = document.getElementById('initialAmount');
+            const periodicContributionInput = document.getElementById('periodicContribution');
+            const annualRateInput = document.getElementById('annualRate');
+            const capitalizationFrequencyInput = document.getElementById('capitalizationFrequency');
+            const timeValueInput = document.getElementById('timeValue');
+            const timeUnitInput = document.getElementById('timeUnit');
+            const contributionLabel = document.getElementById('contributionLabel');
+            
+            const futureValueOutput = document.getElementById('futureValue');
+            const totalContributedOutput = document.getElementById('totalContributed');
+            const totalInterestOutput = document.getElementById('totalInterest');
+            // const teaRateOutput = document.getElementById('teaRate'); // REMOVED
+            
+            const resultsTableBody = document.querySelector('#resultsTable tbody');
+            const growthChartCanvas = document.getElementById('growthChart');
+            
+            const reiniciarBtn = document.getElementById('reiniciarBtn');
+            const simularBtn = document.getElementById('simularBtn');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Chart.js-like minimalist drawing context
+            const chartCtx = growthChartCanvas.getContext('2d');
+            
+            // Global state for chart redraw on resize
+            let lastChartData = { data: [], unit: "Periodos" };
+            
+            // Storage key for localStorage
+            const STORAGE_KEY = 'compoundInterestSimulatorUmin';
+
+            // --- Helper Functions ---
+
+            /**
+             * Parses a numeric string for rate (allows comma).
+             * @param {string} str The input string from the user.
+             * @param {boolean} allowCommaAsDecimal True to treat ',' as '.'.
+             * @returns {number} The parsed floating-point number.
+             */
+            function parseNumeric(str, allowCommaAsDecimal = false) {
+                if (!str) return 0;
+                let sanitized = str;
+                if (allowCommaAsDecimal) {
+                    sanitized = sanitized.replace(',', '.');
+                }
+                
+                // Remove all non-numeric chars except the dot
+                sanitized = sanitized.replace(/[^\d.]/g, '');
+                
+                // Ensure only one dot
+                const parts = sanitized.split('.');
+                if (parts.length > 2) {
+                    sanitized = parts[0] + '.' + parts.slice(1).join('');
+                }
+                
+                const val = parseFloat(sanitized);
+                
+                // Return 0 if invalid or negative
+                if (isNaN(val) || val < 0) {
+                    return 0;
+                }
+                return val;
+            }
+
+            /**
+             * Formats a number as Spanish currency (with decimals).
+             * @param {number} value The number to format.
+             * @returns {string} Formatted currency string (e.g., "$ 1.234,56").
+             */
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('es-CL', {
+                    style: 'currency',
+                    currency: 'CLP',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(value).replace('CLP', '$');
+            }
+            
+            /**
+             * Formats a number as Spanish currency (WITHOUT decimals).
+             * @param {number} value The number to format.
+             * @returns {string} Formatted currency string (e.g., "$ 1.235").
+             */
+            function formatCurrencyInteger(value) {
+                return new Intl.NumberFormat('es-CL', {
+                    style: 'currency',
+                    currency: 'CLP',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(value).replace('CLP', '$');
+            }
+            
+            /**
+             * Formats a number as a percentage.
+             * @param {number} value The decimal value (e.g., 0.05).
+             * @returns {string} Formatted percentage string (e.g., "5.00%").
+             */
+            function formatPercent(value) {
+                return new Intl.NumberFormat('es-ES', {
+                    style: 'percent',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(value);
+            }
+            
+            /**
+             * Displays an error message.
+             * @param {string} message The error message to show.
+             */
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+            
+            /**
+             * Hides the error message.
+             */
+            function hideError() {
+                errorMessage.style.display = 'none';
+            }
+            
+            /**
+             * Updates the label for the periodic contribution based on frequency.
+             */
+            function updateContributionLabel() {
+                const freqValue = capitalizationFrequencyInput.value;
+                const freqText = capitalizationFrequencyInput.querySelector(`option[value="${freqValue}"]`).text;
+                contributionLabel.childNodes[0].nodeValue = `Aporte ${freqText.toLowerCase()} ($) `;
+            }
+            
+            /**
+             * Resets all results to an empty state.
+             */
+            function initializeEmptyResults() {
+                updateSummary(0, 0, 0); // Removed TEA
+                updateTable([]);
+                const freqText = capitalizationFrequencyInput.options[capitalizationFrequencyInput.selectedIndex].text;
+                lastChartData = { data: [], unit: freqText };
+                drawChart(lastChartData.data, lastChartData.unit);
+                hideError();
+            }
+
+            // --- Core Calculation Logic ---
+
+            /**
+             * Main function to calculate and display all results.
+             */
+            function calculateAndDisplay() {
+                hideError();
+                
+                // 1. Get and Parse Inputs
+                const initialAmount = parseInt(initialAmountInput.value || '0', 10);
+                const periodicContribution = parseInt(periodicContributionInput.value || '0', 10);
+                const annualRate = parseNumeric(annualRateInput.value, true) / 100; // true = allow comma
+                const n = parseInt(capitalizationFrequencyInput.value); // n = periods per year
+                const freqText = capitalizationFrequencyInput.options[capitalizationFrequencyInput.selectedIndex].text; // Get text label
+                const timeValue = parseInt(timeValueInput.value || '0', 10);
+                const timeUnit = timeUnitInput.value;
+
+                // 2. Calculate periodic rate
+                const periodicRate = annualRate / n;
+
+                // 3. Validate Inputs
+                if (initialAmount < 0 || periodicContribution < 0 || annualRate < 0 || timeValue < 0) {
+                    showError('Por favor, ingresa solo valores positivos.');
+                    initializeEmptyResults();
+                    return;
+                }
+                
+                if (timeValue === 0 && initialAmount === 0) {
+                     // Empty state, do nothing, just show 0s
+                     initializeEmptyResults();
+                     return;
+                }
+
+                if (timeValue === 0) {
+                    // Valid state, but 0 time. Show initial state.
+                    updateSummary(initialAmount, initialAmount, 0);
+                    updateTable([]);
+                    lastChartData = { data: [{ period: 0, balance: initialAmount }], unit: freqText };
+                    drawChart(lastChartData.data, lastChartData.unit);
+                    return; // No error, just 0 time
+                }
+
+                // 4. Normalize Time to Total Periods
+                let totalPeriods;
+                if (timeUnit === 'años') {
+                    totalPeriods = Math.round(timeValue * n);
+                } else { // 'meses'
+                    totalPeriods = Math.round(timeValue / (12 / n));
+                }
+                
+                if (totalPeriods <= 0) {
+                     showError('El tiempo total resulta en 0 periodos. Ajusta el tiempo o la frecuencia.');
+                     updateSummary(initialAmount, initialAmount, 0);
+                     updateTable([]);
+                     lastChartData = { data: [{ period: 0, balance: initialAmount }], unit: freqText };
+                     drawChart(lastChartData.data, lastChartData.unit);
+                     return;
+                }
+
+                // 5. Run Simulation Loop
+                let currentBalance = initialAmount;
+                let totalContributed = initialAmount;
+                let totalInterest = 0;
+                
+                const tableData = [];
+                const chartData = [{ period: 0, balance: initialAmount }];
+
+                for (let p = 1; p <= totalPeriods; p++) {
+                    const startBalance = currentBalance;
+                    
+                    // Model: Contribution at END of period (Ordinary Annuity)
+                    // Interest is calculated on the principal, THEN contribution is added.
+                    const interestGenerated = startBalance * periodicRate;
+                    const endBalance = startBalance + periodicContribution + interestGenerated;
+                    
+                    totalContributed += periodicContribution;
+                    totalInterest += interestGenerated;
+                    currentBalance = endBalance;
+
+                    // Add data for table and chart
+                    tableData.push({
+                        period: p,
+                        start: startBalance,
+                        contribution: periodicContribution,
+                        interest: interestGenerated,
+                        end: endBalance
+                    });
+                    
+                    chartData.push({
+                        period: p,
+                        balance: endBalance
+                    });
+                }
+                
+                const futureValue = currentBalance;
+
+                // 6. Update UI
+                updateSummary(futureValue, totalContributed, totalInterest);
+                updateTable(tableData);
+                
+                lastChartData = { data: chartData, unit: freqText }; // Save for resize
+                drawChart(chartData, freqText); // Pass the label
+                
+                // 7. Save to localStorage
+                saveToLocalStorage();
+            }
+            
+            // --- UI Update Functions ---
+            
+            /**
+             * Updates the summary boxes with calculated values.
+             * Uses INTEGER formatting for summary.
+             */
+            function updateSummary(fv, contributed, interest) {
+                futureValueOutput.textContent = formatCurrencyInteger(fv);
+                totalContributedOutput.textContent = formatCurrencyInteger(contributed);
+                totalInterestOutput.textContent = formatCurrencyInteger(interest);
+                // teaRateOutput.textContent = formatPercent(tea); // REMOVED
+            }
+
+            /**
+             * Clears and repopulates the results table.
+             * Uses DECIMAL formatting for table.
+             */
+            function updateTable(data) {
+                resultsTableBody.innerHTML = ''; // Clear existing rows
+                
+                if (data.length === 0) {
+                    resultsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--color-violet);">Ingresa tus datos y presiona "Simular".</td></tr>';
+                    return;
+                }
+                
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.period}</td>
+                        <td>${formatCurrency(row.start)}</td>
+                        <td>${formatCurrency(row.contribution)}</td>
+                        <td>${formatCurrency(row.interest)}</td>
+                        <td>${formatCurrency(row.end)}</td>
+                    `;
+                    resultsTableBody.appendChild(tr);
+                });
+            }
+            
+            /**
+             * Draws the growth chart on the canvas.
+             */
+            function drawChart(data, unitLabel = "Periodos") {
+                lastChartData.data = data; // Keep track of data for resize
+                lastChartData.unit = unitLabel;
+                const padding = 50;
+                
+                // Set canvas size based on container (for retina)
+                const dpr = window.devicePixelRatio || 1;
+                const rect = growthChartCanvas.getBoundingClientRect();
+                growthChartCanvas.width = rect.width * dpr;
+                growthChartCanvas.height = rect.height * dpr;
+                chartCtx.scale(dpr, dpr);
+                
+                const chartWidth = rect.width;
+                const chartHeight = rect.height;
+
+                chartCtx.clearRect(0, 0, chartWidth, chartHeight);
+                
+                if (data.length === 0) return; // Exit if no data
+
+                const balances = data.map(d => d.balance);
+                let maxBalance = Math.max(...balances);
+                if (maxBalance === 0) {
+                    maxBalance = 100; // Default axis if balance is 0
+                }
+                
+                const maxPeriod = data.length - 1;
+
+                // Function to map data points to canvas coordinates
+                const getX = (period) => {
+                    if (maxPeriod === 0) {
+                        return padding; // Only one point, place it at start
+                    }
+                    return padding + (period / maxPeriod) * (chartWidth - 2 * padding);
+                };
+                
+                const getY = (balance) => {
+                    return (chartHeight - padding) - (balance / maxBalance) * (chartHeight - 2 * padding);
+                };
+
+                // --- Draw Axes ---
+                chartCtx.beginPath();
+                chartCtx.strokeStyle = 'var(--color-gray-bg)';
+                chartCtx.lineWidth = 1;
+                chartCtx.moveTo(padding, padding);
+                chartCtx.lineTo(padding, chartHeight - padding);
+                chartCtx.lineTo(chartWidth - padding, chartHeight - padding);
+                chartCtx.stroke();
+                
+                // --- Draw Axis Labels ---
+                chartCtx.fillStyle = 'var(--color-violet)';
+                chartCtx.font = '12px Lexend';
+                chartCtx.textAlign = 'right';
+                chartCtx.textBaseline = 'middle';
+                
+                chartCtx.fillText(formatCurrencyInteger(maxBalance), padding - 10, padding);
+                chartCtx.fillText(formatCurrencyInteger(maxBalance / 2), padding - 10, padding + (chartHeight - 2 * padding) / 2);
+                chartCtx.fillText(formatCurrencyInteger(0), padding - 10, chartHeight - padding);
+
+                chartCtx.textAlign = 'center';
+                chartCtx.textBaseline = 'top';
+                
+                chartCtx.fillText('0', padding, chartHeight - padding + 10);
+                if (maxPeriod > 0) {
+                    chartCtx.fillText(Math.round(maxPeriod / 2), padding + (chartWidth - 2 * padding) / 2, chartHeight - padding + 10);
+                    chartCtx.fillText(maxPeriod, chartWidth - padding, chartHeight - padding + 10);
+                }
+                
+                // Determine X-axis label based on unitLabel
+                let xLabel = "Periodos";
+                if (unitLabel === "Mensual") xLabel = "Meses";
+                else if (unitLabel === "Trimestral") xLabel = "Trimestres";
+                else if (unitLabel === "Semestral") xLabel = "Semestres";
+                else if (unitLabel === "Anual") xLabel = "Años";
+                
+                chartCtx.fillText(xLabel, chartWidth / 2, chartHeight - padding + 25);
+
+                // --- Draw Data Line ---
+                if (maxPeriod === 0) { // Only 1 data point
+                    chartCtx.beginPath();
+                    chartCtx.fillStyle = 'var(--color-yellow)';
+                    chartCtx.strokeStyle = 'var(--color-navy)';
+                    chartCtx.lineWidth = 2;
+                    chartCtx.arc(getX(0), getY(data[0].balance), 5, 0, Math.PI * 2);
+                    chartCtx.fill();
+                    chartCtx.stroke();
+                } else {
+                    // Draw line
+                    chartCtx.beginPath();
+                    chartCtx.strokeStyle = 'var(--color-sky-blue)';
+                    chartCtx.lineWidth = 3;
+                    
+                    chartCtx.moveTo(getX(data[0].period), getY(data[0].balance));
+                    data.forEach(point => {
+                        chartCtx.lineTo(getX(point.period), getY(point.balance));
+                    });
+                    chartCtx.stroke();
+                    
+                    // Draw Area Fill
+                    chartCtx.lineTo(getX(maxPeriod), chartHeight - padding);
+                    chartCtx.lineTo(getX(0), chartHeight - padding);
+                    chartCtx.closePath();
+                    
+                    const gradient = chartCtx.createLinearGradient(0, padding, 0, chartHeight - padding);
+                    gradient.addColorStop(0, 'rgba(0, 173, 225, 0.3)');
+                    gradient.addColorStop(1, 'rgba(0, 173, 225, 0.01)');
+                    chartCtx.fillStyle = gradient;
+                    chartCtx.fill();
+
+                    // Draw Last Point
+                    chartCtx.beginPath();
+                    chartCtx.fillStyle = 'var(--color-yellow)';
+                    chartCtx.strokeStyle = 'var(--color-navy)';
+                    chartCtx.lineWidth = 2;
+                    const lastPoint = data[data.length - 1];
+                    chartCtx.arc(getX(lastPoint.period), getY(lastPoint.balance), 5, 0, Math.PI * 2);
+                    chartCtx.fill();
+                    chartCtx.stroke();
+                }
+            }
+
+            // --- Event Handlers ---
+            
+            /**
+             * Real-time filter for positive integer fields (no decimals).
+             */
+            const filterPositiveInteger = (e) => {
+                e.target.value = e.target.value.replace(/[^\d]/g, ''); // Remove non-digits
+            };
+            
+            /**
+             * Real-time filter for rate field (allows dot OR comma).
+             */
+            const filterRate = (e) => {
+                let val = e.target.value;
+                val = val.replace(/[^\d.,]/g, ''); // Remove invalid chars
+                
+                if (val.includes('.') && val.includes(',')) {
+                    val = val.replace(/,/g, '');
+                }
+                
+                let parts = val.split('.');
+                if (parts.length > 2) {
+                    val = parts[0] + '.' + parts.slice(1).join('');
+                }
+                
+                parts = val.split(',');
+                if (parts.length > 2) {
+                    val = parts[0] + ',' + parts.slice(1).join('');
+                }
+                
+                e.target.value = val;
+            };
+            
+            /**
+             * Saves all current input values to localStorage.
+             */
+            function saveToLocalStorage() {
+                const settings = {
+                    initialAmount: initialAmountInput.value,
+                    periodicContribution: periodicContributionInput.value,
+                    annualRate: annualRateInput.value,
+                    capitalizationFrequency: capitalizationFrequencyInput.value,
+                    timeValue: timeValueInput.value,
+                    timeUnit: timeUnitInput.value
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            }
+            
+            /**
+             * Loads settings from localStorage and populates the form.
+             */
+            function loadFromLocalStorage() {
+                const settings = localStorage.getItem(STORAGE_KEY);
+                if (settings) {
+                    const parsedSettings = JSON.parse(settings);
+                    if (parsedSettings.initialAmount) initialAmountInput.value = parsedSettings.initialAmount;
+                    if (parsedSettings.periodicContribution) periodicContributionInput.value = parsedSettings.periodicContribution;
+                    if (parsedSettings.annualRate) annualRateInput.value = parsedSettings.annualRate;
+                    if (parsedSettings.capitalizationFrequency) capitalizationFrequencyInput.value = parsedSettings.capitalizationFrequency;
+                    if (parsedSettings.timeValue) timeValueInput.value = parsedSettings.timeValue;
+                    if (parsedSettings.timeUnit) timeUnitInput.value = parsedSettings.timeUnit;
+                }
+            }
+            
+            /**
+             * Resets the calculator to its default state and clears localStorage.
+             */
+            function resetCalculator() {
+                initialAmountInput.value = '';
+                periodicContributionInput.value = '';
+                annualRateInput.value = '';
+                capitalizationFrequencyInput.value = '12'; // Reset dropdown
+                timeValueInput.value = '';
+                timeUnitInput.value = 'años'; // Reset dropdown
+                
+                localStorage.removeItem(STORAGE_KEY);
+                updateContributionLabel();
+                initializeEmptyResults(); // Clear results
+            }
+            
+            // --- Initial Setup & Event Listeners ---
+            
+            // Add real-time input filtering
+            initialAmountInput.addEventListener('input', filterPositiveInteger);
+            periodicContributionInput.addEventListener('input', filterPositiveInteger);
+            timeValueInput.addEventListener('input', filterPositiveInteger);
+            annualRateInput.addEventListener('input', filterRate);
+            
+            // Special listener for frequency to update the contribution label
+            capitalizationFrequencyInput.addEventListener('change', updateContributionLabel);
+            
+            // Button listeners
+            simularBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent form submission
+                calculateAndDisplay();
+            });
+            reiniciarBtn.addEventListener('click', resetCalculator);
+            
+            // Redraw chart on window resize (using last data)
+            window.addEventListener('resize', () => drawChart(lastChartData.data, lastChartData.unit));
+
+            // --- Initial Load ---
+            loadFromLocalStorage(); // Load saved inputs
+            updateContributionLabel(); // Set label text
+            initializeEmptyResults(); // Start with empty results
+        });
+    </script>
+</body>
+</html>
