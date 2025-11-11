@@ -4,7 +4,7 @@
     This application is fully contained in a single HTML file, using embedded CSS and JavaScript.
     FINAL VERSION: 
     1. EXPORT FUNCTION: Uses semicolon (;) delimiter and .csv extension for reliable table opening in Excel/Sheets in Spanish-speaking regions.
-    2. Category separation (Ahorro / Deuda) implemented.
+    2. Category is strictly limited to NEEDS, WANTS, and SAVINGS (Debt removed entirely).
     3. Tooltips use <strong> for bolding.
     4. Input validation and navigation are fully functional.
 -->
@@ -486,7 +486,7 @@
             Basado en el modelo 50/30/20 (Necesidades / Deseos / Ahorro)
             <span class="tooltip-container">
                 <span class="tooltip-text">
-                    El modelo 50/30/20 sugiere distribuir tus ingresos en: <strong>50% Necesidades</strong> (gastos esenciales y fijos), <strong>30% Deseos</strong> (gastos discrecionales y ocio), y <strong>20% Ahorro/Deuda</strong> (fondo de emergencia, inversión, o pago extra de deudas).
+                    El modelo 50/30/20 sugiere distribuir tus ingresos en: <strong>50% Necesidades</strong> (gastos esenciales y fijos), <strong>30% Deseos</strong> (gastos discrecionales y ocio), y <strong>20% Ahorro</strong> (fondo de emergencia e inversión).
                 </span>
             </span>
         </p>
@@ -632,7 +632,7 @@
 
                             <div class="breakdown-item">
                                 <div class="breakdown-label">
-                                    Ahorro/Deuda (meta 20% de ingreso)
+                                    Ahorro (meta 20% de ingreso)
                                 </div>
                                 <div class="breakdown-value-wrapper">
                                      <span class="breakdown-percentage" id="savings-percent">0%</span>
@@ -682,12 +682,11 @@
         // Global data structure to hold all records
         let budgetData = []; 
         
-        // Expense categories based on 50/30/20 rule
+        // Expense categories based on 50/30/20 rule - DEBT REMOVED
         const EXPENSE_CATEGORIES = {
             'needs': 'Necesidades (50%)',
             'wants': 'Deseos (30%)',
-            'savings': 'Ahorro (20%)', // Separated from Debt for clearer tracking
-            'debt': 'Deuda (20%)'      // Separated from Savings for clearer tracking
+            'savings': 'Ahorro (20%)', // Now represents the entire 20%
         };
 
         const TRANSACTION_TYPES = {
@@ -700,7 +699,6 @@
             'needs': '#575e9a',    // Violet (Primary Expense)
             'wants': '#ffcd22',    // Yellow (Wants/Discretionary)
             'savings': '#80b122',  // Green (Savings/Positive)
-            'debt': '#da3728',     // Red (Debt Payment)
             'unspent': '#ececec',  // Gray (Unspent/Remaining Income)
             'overspent': '#da3728' // Red (Overspent/Deficit) - used in balance check
         };
@@ -877,7 +875,7 @@
          * @returns {string} HTML string for the row.
          */
         function createBudgetRowHTML(row) {
-            // Include all four categories for the select dropdown
+            // Include all three categories for the select dropdown
             const expenseOptions = Object.entries(EXPENSE_CATEGORIES).map(([key, label]) => 
                 `<option value="${key}" ${row.category === key ? 'selected' : ''}>${label}</option>`
             ).join('');
@@ -1001,10 +999,9 @@
         // --- Chart Drawing Logic ---
         
         /**
-         * Draws the donut chart based on category percentages. (Function is lengthy but unchanged logic-wise, 
-         * just ensuring it uses correct font properties for the canvas.)
+         * Draws the donut chart based on category percentages.
          */
-        function drawChart(needsPct, wantsPct, savingsDebtPct, totalIncome, totalExpenses) {
+        function drawChart(needsPct, wantsPct, savingsPct, totalIncome, totalExpenses) {
             const canvas = document.getElementById('chart-canvas');
             if (!canvas) return; 
 
@@ -1018,7 +1015,7 @@
             
             ctx.clearRect(0, 0, size, size);
             
-            const totalSpentPct = needsPct + wantsPct + savingsDebtPct;
+            const totalSpentPct = needsPct + wantsPct + savingsPct;
             let finalData = [];
             
             let scaleFactor = totalSpentPct > 1.0 ? 1.0 / totalSpentPct : 1.0;
@@ -1026,8 +1023,7 @@
             // Build the data array for the chart segments
             finalData.push({ percent: needsPct * scaleFactor, color: CHART_COLORS.needs, label: 'Necesidades' });
             finalData.push({ percent: wantsPct * scaleFactor, color: CHART_COLORS.wants, label: 'Deseos' });
-            // Use the combined Savings/Debt percentage for the chart slice
-            finalData.push({ percent: savingsDebtPct * scaleFactor, color: CHART_COLORS.savings, label: 'Ahorro/Deuda' }); 
+            finalData.push({ percent: savingsPct * scaleFactor, color: CHART_COLORS.savings, label: 'Ahorro' }); 
 
             // Add 'Unspent' portion if total consumption is less than 100% of income
             if (totalSpentPct < 1.0) {
@@ -1086,16 +1082,14 @@
 
         /**
          * Generates and displays the friendly feedback message based on 50/30/20 compliance.
-         * **SIMPLIFIED FOR BREVITY AND DIRECTNESS**
          * @param {number} totalIncome - Total calculated income.
-         * @param {Object} categoryPcts - Object containing needs, wants, and savingsDebt percentages (0 to 1).
+         * @param {Object} categoryPcts - Object containing needs, wants, and savings percentages (0 to 1).
          * @param {number} balance - Monthly balance.
          */
         function updateFeedbackMessage(totalIncome, categoryPcts, balance) {
             const needsP = categoryPcts.needs;
             const wantsP = categoryPcts.wants;
-            // Use the combined savings/debt percentage for the 20% check
-            const savingsDebtP = categoryPcts.savingsDebt; 
+            const savingsP = categoryPcts.savings; // Savings only
             const $msgEl = document.getElementById('feedback-message');
             
             let message = '';
@@ -1105,59 +1099,56 @@
             
             if (totalIncome === 0) {
                 className = 'feedback-warning';
-                message = 'Ingresa tu **ingreso principal** para obtener un análisis 50/30/20.';
+                message = 'Ingresa tu <strong>ingreso principal</strong> para obtener un análisis 50/30/20.';
             } else if (balance < 0) {
                 className = 'feedback-alert';
-                message = `¡**Déficit**! Tu gasto supera el ingreso por ${formatCurrency(Math.abs(balance))}. Prioriza y ajusta tus gastos.`;
+                message = `¡<strong>Déficit</strong>! Tu gasto supera el ingreso por ${formatCurrency(Math.abs(balance))}. Prioriza y ajusta tus gastos.`;
             } else {
                 // Check 50% Needs
                 if (needsP > 0.5 + buffer) {
-                    complianceProblems.push(`- **Necesidades:** Excedes el 50% ideal (${formatPercentage(needsP)}). Revisa gastos fijos esenciales.`);
+                    complianceProblems.push(`• <strong>Necesidades:</strong> Excedes el 50% ideal (${formatPercentage(needsP)}). Revisa gastos fijos esenciales.`);
                 }
                 
                 // Check 30% Wants
                 if (wantsP > 0.3 + buffer) {
-                    complianceProblems.push(`- **Deseos:** Excedes el 30% ideal (${formatPercentage(wantsP)}). Identifica gastos discrecionales que puedes reducir.`);
+                    complianceProblems.push(`• <strong>Deseos:</strong> Excedes el 30% ideal (${formatPercentage(wantsP)}). Identifica gastos discrecionales que puedes reducir.`);
                 }
                 
-                // Check 20% Savings/Debt
-                if (savingsDebtP < 0.2 - buffer) {
-                    complianceProblems.push(`- **Ahorro/Deuda:** Estás por debajo del 20% ideal (${formatPercentage(savingsDebtP)}). Incrementa tu ahorro o pago de deudas.`);
-                } else if (savingsDebtP > 0.2 + buffer) {
-                    complianceProblems.push(`- ¡**Excelente Ahorro!** Estás destinando más del 20% recomendado (${formatPercentage(savingsDebtP)}).`);
+                // Check 20% Savings
+                if (savingsP < 0.2 - buffer) {
+                    complianceProblems.push(`• <strong>Ahorro:</strong> Estás por debajo del 20% ideal (${formatPercentage(savingsP)}). Incrementa tu ahorro.`);
+                } else if (savingsP > 0.2 + buffer) {
+                    complianceProblems.push(`• ¡<strong>Excelente Ahorro!</strong> Estás destinando más del 20% recomendado (${formatPercentage(savingsP)}).`);
                 }
                 
                 // --- Final Message Logic ---
                 if (complianceProblems.length > 0) {
-                    const excellentSavings = complianceProblems.find(msg => msg.includes('¡Excelente Ahorro!'));
+                    const excellentSavings = complianceProblems.find(msg => msg.includes('¡<strong>Excelente Ahorro!</strong>'));
                     
                     if (complianceProblems.length === 1 && excellentSavings) {
                         className = 'feedback-positive';
-                        message = `**¡Felicidades!** Estás en buen camino. ${excellentSavings.replace('- ', '• ')}`;
+                        message = `<strong>¡Felicidades!</strong> Estás en buen camino. ${excellentSavings}`;
                     } else if (excellentSavings) {
                         className = 'feedback-warning';
-                        let baseMsg = `**¡Logros y ajustes!** Tienes un excelente ahorro, pero optimiza lo siguiente:\n`;
-                        baseMsg += complianceProblems.filter(msg => !msg.includes('¡Excelente Ahorro!')).join('\n').replace(/^-/gm, '•');
-                        baseMsg += `\n${excellentSavings.replace('- ', '• ')}`;
+                        let baseMsg = `<strong>¡Logros y ajustes!</strong> Tienes un excelente ahorro, pero optimiza lo siguiente:<br>`;
+                        baseMsg += complianceProblems.filter(msg => !msg.includes('¡<strong>Excelente Ahorro!</strong>')).join('<br>');
+                        baseMsg += `<br>${excellentSavings}`;
                         message = baseMsg;
                     } else {
                         className = 'feedback-warning';
-                        message = `**¡Oportunidades de mejora!** Tu distribución está desbalanceada. Te recomendamos revisar:\n` + complianceProblems.join('\n').replace(/^-/gm, '•');
+                        message = `<strong>¡Oportunidades de mejora!</strong> Tu distribución está desbalanceada. Te recomendamos revisar:<br>` + complianceProblems.join('<br>');
                     }
                 } else {
                     className = 'feedback-positive';
-                    message = '¡Felicidades! Tu distribución de gastos está **perfectamente alineada con el modelo 50/30/20**. ¡Control total!';
+                    message = '¡Felicidades! Tu distribución de gastos está <strong>perfectamente alineada con el modelo 50/30/20</strong>. ¡Control total!';
                 }
             }
             
             // Apply formatting and update HTML
             $msgEl.className = `feedback-message ${className}`;
             
-            // Replace **bold** with <strong> and handle newlines for display
-            message = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            
-            // Convert newline characters for multi-line display, replacing list markers where needed
-            $msgEl.innerHTML = message.replace(/\n/g, '<br>');
+            // Final step: ensure HTML bolding is used
+            $msgEl.innerHTML = message;
         }
 
 
@@ -1169,7 +1160,8 @@
         function updateTotals() {
             let totalIncome = 0;
             let totalExpenses = 0;
-            const categoryTotals = { needs: 0, wants: 0, savings: 0, debt: 0 };
+            // Only needs, wants, and savings are counted
+            const categoryTotals = { needs: 0, wants: 0, savings: 0 }; 
             
             // 1. Calculate Total Income and Total Expenses
             budgetData.forEach(row => {
@@ -1183,21 +1175,24 @@
                     if (categoryTotals.hasOwnProperty(row.category)) {
                         categoryTotals[row.category] += amount;
                     }
+                    // Handle old 'debt' category data if it exists by counting it as savings for calculation purposes
+                    else if (row.category === 'debt') {
+                         categoryTotals.savings += amount;
+                    }
                 }
             });
             
-            // Combine Savings and Debt for the 20% rule analysis and display
-            const savingsDebtTotal = categoryTotals.savings + categoryTotals.debt;
+            const savingsTotal = categoryTotals.savings; // Savings only, no debt separation
 
             // 2. Calculate Balance
             const balance = totalIncome - totalExpenses;
             
-            // 3. Calculate Percentages (Need separate percentages for chart/list)
+            // 3. Calculate Percentages
             const categoryPcts = {
                 needs: totalIncome > 0 ? categoryTotals.needs / totalIncome : 0,
                 wants: totalIncome > 0 ? categoryTotals.wants / totalIncome : 0,
-                // The combined percentage for the 20% rule check and chart slice
-                savingsDebt: totalIncome > 0 ? savingsDebtTotal / totalIncome : 0
+                // Savings is the entire 20%
+                savings: totalIncome > 0 ? savingsTotal / totalIncome : 0
             };
 
             // 4. Update Summary Dashboard
@@ -1223,7 +1218,7 @@
             }
             
             // 5. Update 50/30/20 Breakdown List
-            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings + categoryTotals.debt;
+            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings;
             document.getElementById('category-sum').textContent = formatCurrency(totalCategorized);
 
             // Function to update breakdown list display
@@ -1244,14 +1239,13 @@
                 }
             };
             
-            // 50% Needs, 30% Wants, 20% Savings/Debt
+            // 50% Needs, 30% Wants, 20% Savings
             updateCategoryDisplay('needs', categoryTotals.needs, 0.5, categoryPcts.needs);
             updateCategoryDisplay('wants', categoryTotals.wants, 0.3, categoryPcts.wants);
-            // Use the combined savings/debt total for the display line
-            updateCategoryDisplay('savings', savingsDebtTotal, 0.2, categoryPcts.savingsDebt); 
+            updateCategoryDisplay('savings', savingsTotal, 0.2, categoryPcts.savings); 
             
             // 6. Update Chart and Feedback
-            drawChart(categoryPcts.needs, categoryPcts.wants, categoryPcts.savingsDebt, totalIncome, totalExpenses);
+            drawChart(categoryPcts.needs, categoryPcts.wants, categoryPcts.savings, totalIncome, totalExpenses);
             updateFeedbackMessage(totalIncome, categoryPcts, balance);
 
             // Save data after calculation completes
@@ -1288,17 +1282,18 @@
             const totalIncome = budgetData.filter(r => r.type === 'income').reduce((sum, row) => sum + parseValue(row.amount), 0);
             const totalExpenses = budgetData.filter(r => r.type === 'expense').reduce((sum, row) => sum + parseValue(row.amount), 0);
             const balance = totalIncome - totalExpenses;
-            const categoryTotals = { needs: 0, wants: 0, savings: 0, debt: 0 }; // Separate totals
+            // Only needs, wants, and savings are counted
+            const categoryTotals = { needs: 0, wants: 0, savings: 0 }; 
             budgetData.filter(r => r.type === 'expense').forEach(row => {
                 if (categoryTotals.hasOwnProperty(row.category)) {
                     categoryTotals[row.category] += parseValue(row.amount);
                 }
             });
-            const savingsDebtTotal = categoryTotals.savings + categoryTotals.debt; // Combined total for 20% rule
+            const savingsTotal = categoryTotals.savings; // Savings only, 20% rule
             const needsPct = totalIncome > 0 ? categoryTotals.needs / totalIncome : 0;
             const wantsPct = totalIncome > 0 ? categoryTotals.wants / totalIncome : 0;
-            const savingsDebtPct = totalIncome > 0 ? savingsDebtTotal / totalIncome : 0;
-            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings + categoryTotals.debt;
+            const savingsPct = totalIncome > 0 ? savingsTotal / totalIncome : 0;
+            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings;
 
             let csvContent = '';
 
@@ -1327,12 +1322,10 @@
             csvContent += csvClean('DISTRIBUCIÓN 50/30/20') + DELIMITER + DELIMITER + DELIMITER + DELIMITER + '\n';
             csvContent += csvClean('Categoría') + DELIMITER + csvClean('Gasto Real ($)') + DELIMITER + csvClean('% Ingreso Total') + DELIMITER + csvClean('Meta Ideal') + '\n';
 
-            // Note: Saving separate Savings/Debt totals but using combined pct for analysis
+            // Note: Savings only
             csvContent += csvClean('Necesidades (50%)') + DELIMITER + categoryTotals.needs + DELIMITER + needsPct + DELIMITER + csvClean('50%') + '\n';
             csvContent += csvClean('Deseos (30%)') + DELIMITER + categoryTotals.wants + DELIMITER + wantsPct + DELIMITER + csvClean('30%') + '\n';
-            csvContent += csvClean('Ahorro (20%)') + DELIMITER + categoryTotals.savings + DELIMITER + DELIMITER + '\n';
-            csvContent += csvClean('Deuda (20%)') + DELIMITER + categoryTotals.debt + DELIMITER + DELIMITER + '\n';
-            csvContent += csvClean('Total Ahorro/Deuda (Combinado)') + DELIMITER + savingsDebtTotal + DELIMITER + savingsDebtPct + DELIMITER + csvClean('20%') + '\n';
+            csvContent += csvClean('Ahorro (20%)') + DELIMITER + savingsTotal + DELIMITER + savingsPct + DELIMITER + csvClean('20%') + '\n';
             csvContent += csvClean('Total Gastos Categorizados') + DELIMITER + totalCategorized + DELIMITER + DELIMITER + '\n';
             csvContent += '\n';
 
