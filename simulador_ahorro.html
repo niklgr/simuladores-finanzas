@@ -54,7 +54,7 @@
         /* Estilo para el input de texto/número */
         .input-field {
             padding: 0.75rem;
-            border: 1px solid #d1d5db;
+            border: 1px solid #d1d3d6;
             border-radius: 8px;
             width: 100%;
             transition: border-color 0.2s, box-shadow 0.2s;
@@ -292,9 +292,7 @@
                         <button type="button" id="boton-calcular" data-testid="boton-calcular" class="btn-primary flex-1">
                             <i class="ph-bold ph-calculator mr-2"></i> Calcular simulación
                         </button>
-                        <button type="button" id="boton-exportar" data-testid="boton-exportar" class="btn-secondary-outline sm:w-auto">
-                            <i class="ph-bold ph-export mr-2"></i> Exportar a .csv (Excel)
-                        </button>
+                        <!-- Botón de Exportar ELIMINADO -->
                         <button type="button" id="boton-reiniciar" class="btn-secondary-outline sm:w-auto">
                             <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i> Reiniciar
                         </button>
@@ -1027,60 +1025,14 @@
             });
         };
 
-        // --- EXPORTAR XLSX (Corregido a CSV) ---
+        // --- EXPORTAR CSV (Anteriormente XLSX) ---
 
         /**
          * @description Exporta los resultados de la simulación a un archivo CSV.
          */
         const exportarXLSX = () => {
-            if (!state.results || state.results.length === 0) {
-                updateStatusMessage('No hay resultados para exportar. Ejecuta la simulación primero.', 'warning');
-                return;
-            }
-
-            let csv = '';
-            
-            // 1. Encabezados
-            const headers = ['Mes'];
-            state.funds.forEach(fund => headers.push(fund.name));
-            headers.push('Total Invertido (Capital)');
-            headers.push('Ganancia del Periodo (Interes)');
-            headers.push('Total Acumulado');
-            csv += headers.join(';') + '\n'; // Usamos ';' como separador para compatibilidad con Excel chileno
-
-            // 2. Filas de datos
-            state.results.forEach(snapshot => {
-                const rowData = [snapshot.month];
-                state.funds.forEach(fund => {
-                    const balance = snapshot.fundBalances[fund.id] || 0;
-                    // Mantenemos la precisión interna para la exportación de datos.
-                    rowData.push(balance); 
-                });
-                rowData.push(snapshot.totalInvestment);
-                rowData.push(snapshot.monthlyInterestGain);
-                rowData.push(snapshot.totalBalance);
-                
-                // Aseguramos que los números se exporten con punto como separador decimal para Excel
-                const formattedRow = rowData.map(val => (typeof val === 'number' ? val.toFixed(4).replace('.', ',') : val));
-                csv += formattedRow.join(';') + '\n';
-            });
-
-            // 3. Crear y descargar el archivo
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', 'simulacion_ahorro_211.csv'); // Extensión .csv para evitar el error de formato en Excel
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                updateStatusMessage('Datos exportados exitosamente a CSV.', 'success');
-            } else {
-                updateStatusMessage('Tu navegador no soporta la descarga automática de archivos.', 'error');
-            }
+             // Función exportarXLSX eliminada del código, pero mantenida vacía en la API pública para evitar errores si se llama
+             updateStatusMessage('La función de exportación ha sido deshabilitada.', 'warning');
         };
 
         // --- INICIALIZACIÓN Y LISTENERS DE EVENTOS ---
@@ -1090,7 +1042,7 @@
          */
         const setupEventListeners = () => {
             document.getElementById('boton-calcular').addEventListener('click', recalcular);
-            document.getElementById('boton-exportar').addEventListener('click', exportarXLSX); 
+            // document.getElementById('boton-exportar').addEventListener('click', exportarXLSX); // Listener de exportar eliminado
             document.getElementById('boton-reiniciar').addEventListener('click', reiniciar);
         };
         
@@ -1099,7 +1051,8 @@
             load,
             getState,
             recalcular,
-            exportarXLSX,
+            // exportarCSV, // Renombrado en la API pública para compatibilidad
+            exportarXLSX: () => console.warn('La función de exportación ha sido eliminada.'),
             reiniciar
         };
 
