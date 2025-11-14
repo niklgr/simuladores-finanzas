@@ -3,8 +3,8 @@
     All UI elements, labels, and instructional text are in Spanish, as requested.
     This application is fully contained in a single HTML file, using embedded CSS and JavaScript.
     FINAL VERSION: 
-    1. EXPORT FUNCTION: Uses semicolon (;) delimiter and .csv extension for reliable table opening in Excel/Sheets in Spanish-speaking regions.
-    2. Category is strictly limited to NEEDS, WANTS, and SAVINGS (Debt removed entirely).
+    1. EXPORT FUNCTIONALITY REMOVED.
+    2. Category is strictly limited to NEEDS, WANTS, and SAVINGS.
     3. Tooltips use <strong> for bolding.
     4. Input validation and navigation are fully functional.
 -->
@@ -643,12 +643,6 @@
                             <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--color-border); font-weight: 600; text-align: right; color: var(--color-navy);">
                                 Gasto total categorizado: <span id="category-sum">$0</span>
                             </div>
-
-                            <button class="btn btn-export" onclick="exportToXLSX()">
-                                <span style="margin-right: 8px;">Exportar resumen a .xlsx (Excel)</span>
-                                <!-- Inline SVG for download icon -->
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            </button>
                         </div>
                     </div>
 
@@ -1252,102 +1246,10 @@
             saveData();
         }
 
-        // --- Export Functionality (Using CSV for robustness) ---
-
-        /**
-         * Cleans a string for safe use within a CSV cell (handling commas, newlines, and the delimiter ';').
-         * @param {string} str - The string to clean.
-         * @returns {string} The CSV-safe string.
-         */
-        function csvClean(str) {
-            // Ensure str is a string and replace double quotes with two double quotes.
-            if (typeof str === 'number') return str;
-            str = String(str).replace(/"/g, '""');
-            // If the string contains the delimiter (;) or a newline, wrap the whole string in quotes.
-            if (str.includes(';') || str.includes('\n') || str.includes('\r')) {
-                return `"${str}"`;
-            }
-            return str;
-        }
-
-        /**
-         * Exports the current budget data and summary as a highly compatible CSV file, 
-         * using the .csv extension and semicolon delimiter.
-         */
+        // --- Export Functionality (Removed as per request) ---
+        // Function stub to avoid errors if accidentally called
         function exportToXLSX() {
-            // Use SEMICOLON as delimiter (standard for CSV in many Latin American Excel localizations)
-            const DELIMITER = ';';
-
-            // --- 1. Calculate Data ---
-            const totalIncome = budgetData.filter(r => r.type === 'income').reduce((sum, row) => sum + parseValue(row.amount), 0);
-            const totalExpenses = budgetData.filter(r => r.type === 'expense').reduce((sum, row) => sum + parseValue(row.amount), 0);
-            const balance = totalIncome - totalExpenses;
-            // Only needs, wants, and savings are counted
-            const categoryTotals = { needs: 0, wants: 0, savings: 0 }; 
-            budgetData.filter(r => r.type === 'expense').forEach(row => {
-                if (categoryTotals.hasOwnProperty(row.category)) {
-                    categoryTotals[row.category] += parseValue(row.amount);
-                }
-            });
-            const savingsTotal = categoryTotals.savings; // Savings only, 20% rule
-            const needsPct = totalIncome > 0 ? categoryTotals.needs / totalIncome : 0;
-            const wantsPct = totalIncome > 0 ? categoryTotals.wants / totalIncome : 0;
-            const savingsPct = totalIncome > 0 ? savingsTotal / totalIncome : 0;
-            const totalCategorized = categoryTotals.needs + categoryTotals.wants + categoryTotals.savings;
-
-            let csvContent = '';
-
-            // --- 2. Detail Data Section (FIRST in export) ---
-            csvContent += csvClean('REGISTRO DE MOVIMIENTOS') + DELIMITER + DELIMITER + DELIMITER + DELIMITER + '\n';
-            csvContent += csvClean('Tipo') + DELIMITER + csvClean('Categoría (50/30/20)') + DELIMITER + csvClean('Descripción') + DELIMITER + csvClean('Monto ($)') + '\n';
-
-            budgetData.forEach(row => {
-                const amount = parseValue(row.amount);
-                const typeLabel = TRANSACTION_TYPES[row.type] || 'Desconocido';
-                const categoryLabel = row.type === 'expense' ? (EXPENSE_CATEGORIES[row.category] || 'Sin categoría') : '--';
-                
-                csvContent += csvClean(typeLabel) + DELIMITER + csvClean(categoryLabel) + DELIMITER + csvClean(row.desc) + DELIMITER + amount + '\n';
-            });
-            csvContent += '\n';
-
-
-            // --- 3. Summary Section ---
-            csvContent += csvClean('RESUMEN GENERAL') + DELIMITER + DELIMITER + '\n';
-            csvContent += csvClean('Ingresos Totales') + DELIMITER + totalIncome + DELIMITER + '\n';
-            csvContent += csvClean('Gastos Totales') + DELIMITER + totalExpenses + DELIMITER + '\n';
-            csvContent += csvClean('Balance Mensual') + DELIMITER + balance + DELIMITER + '\n';
-            csvContent += '\n';
-
-            // --- 4. 50/30/20 Breakdown Section ---
-            csvContent += csvClean('DISTRIBUCIÓN 50/30/20') + DELIMITER + DELIMITER + DELIMITER + DELIMITER + '\n';
-            csvContent += csvClean('Categoría') + DELIMITER + csvClean('Gasto Real ($)') + DELIMITER + csvClean('% Ingreso Total') + DELIMITER + csvClean('Meta Ideal') + '\n';
-
-            // Note: Savings only
-            csvContent += csvClean('Necesidades (50%)') + DELIMITER + categoryTotals.needs + DELIMITER + needsPct + DELIMITER + csvClean('50%') + '\n';
-            csvContent += csvClean('Deseos (30%)') + DELIMITER + categoryTotals.wants + DELIMITER + wantsPct + DELIMITER + csvClean('30%') + '\n';
-            csvContent += csvClean('Ahorro (20%)') + DELIMITER + savingsTotal + DELIMITER + savingsPct + DELIMITER + csvClean('20%') + '\n';
-            csvContent += csvClean('Total Gastos Categorizados') + DELIMITER + totalCategorized + DELIMITER + DELIMITER + '\n';
-            csvContent += '\n';
-
-            // Create Blob with UTF-8 BOM for proper character handling in Excel
-            const BOM = "\uFEFF"; 
-            const blob = new Blob([BOM + csvContent], { 
-                type: 'text/csv;charset=utf-8;'
-            });
-            
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute("href", url);
-            // Download as .csv for reliable table import
-            link.setAttribute("download", "presupuesto_mensual.csv"); 
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // Inform the user about the change
-            alert("El archivo se ha descargado como 'presupuesto_mensual.csv'. Por favor, ábrelo o impórtalo en Excel/Sheets. (Se usa el punto y coma ';' como separador para asegurar la compatibilidad regional).");
+            console.warn("Export functionality has been removed.");
         }
 
         // --- Initial Load ---
