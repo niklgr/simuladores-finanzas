@@ -137,8 +137,8 @@
         /* New Grid for Debt Header and Items (Desktop/Wide) */
         .debt-grid {
             display: grid;
-            /* 5 columns: Name (2fr) | Monto (1.2fr) | Tasa (1fr) | Cuota (1.2fr) | Actions (0.4fr) */
-            grid-template-columns: 2fr 1.2fr 1fr 1.2fr 0.4fr; 
+            /* 6 columns: Name (2fr) | Monto (1.4fr) | Tasa (1fr) | Term (1fr) | Cuota (1.4fr) | Actions (50px - FIXED WIDTH) */
+            grid-template-columns: 2fr 1.4fr 1fr 1fr 1.4fr 50px; 
             gap: 10px;
             align-items: center;
         }
@@ -163,20 +163,17 @@
             outline: none;
             cursor: default;
             
-            /* --- THIS IS THE ALIGNMENT FIX --- */
-            /* Match the data input padding */
+            /* --- ALIGNMENT FIX --- */
             padding: 10px 12px; 
-            /* Match the data input text alignment (numbers) */
+            /* Align right for numbers, left for the text 'Deuda' */
             text-align: right; 
-            width: 100%; /* Ensure it fills its grid cell */
-            box-sizing: border-box; /* Include padding in width */
+            width: 100%; 
+            box-sizing: border-box; 
         }
         
         /* Modifier for the 'Deuda' header (text) */
         .debt-header-input.header-label {
-            /* Match the 'Deuda' data input alignment */
             text-align: left; 
-            /* Match the 'Deuda' data input padding */
             padding-left: 10px; 
         }
         /* --- End of Final Alignment Solution --- */
@@ -206,7 +203,7 @@
         
         /* Alignment for totals row */
         .total-row {
-            grid-template-columns: 2fr 1.2fr 1fr 1.2fr 0.4fr; /* Match debt grid structure */
+            grid-template-columns: 2fr 1.4fr 1fr 1fr 1.4fr 50px; /* Match debt grid structure (6 columns) */
         }
         
         .total-row span:first-child {
@@ -218,13 +215,13 @@
         .total-row span:nth-child(2) 
         {
             text-align: right; 
-            padding-right: 12px; /* Same as debt-input padding-right */
+            padding-right: 12px; 
             font-weight: 700;
             color: var(--color-navy);
         }
         
-        /* Totals Pago aligned right, matching input right edge */
-        .total-row span:nth-child(4) 
+        /* Totals Pago aligned right, matching input right edge. Now it's the 5th item */
+        .total-row span:nth-child(5) 
         {
             text-align: right; 
             padding-right: 12px; 
@@ -232,17 +229,19 @@
             color: var(--color-navy);
         }
         
+        /* Placeholders for Tasa (3) and Plazo (4) */
         .total-row span:nth-child(3), 
-        .total-row span:nth-child(5) 
+        .total-row span:nth-child(4), 
+        .total-row span:nth-child(6) 
         {
             text-align: center; 
         }
 
         /* --- MOBILE/RESPONSIVE STYLES --- */
         @media (max-width: 768px) {
+            /* Mobile now stacks items to display 4 essential fields */
             .debt-grid {
-                /* On small screens, stack columns (Name and Actions stay, others are 1fr) */
-                grid-template-columns: 1fr 1fr; 
+                grid-template-columns: 1fr 1fr; /* Default 2 columns for smaller inputs */
                 gap: 5px;
                 padding-top: 10px;
                 border: 1px solid #ddd;
@@ -260,11 +259,6 @@
                 gap: 10px;
             }
 
-            .debt-item input {
-                width: 100%;
-                box-sizing: border-box;
-            }
-
             /* Debt Name takes full width, Actions moves to its own row with buttons */
             .debt-item input[type="text"] {
                 grid-column: span 2;
@@ -272,11 +266,18 @@
                 background-color: var(--color-white);
             }
 
-            /* Re-style debt items for stacking */
-            .debt-item input[name*="-monto"],
-            .debt-item input[name*="-tasa"],
+            /* Stack Monto and Tasa/Plazo/Cuota in two columns */
+            .debt-item input[name*="-monto"] {
+                grid-column: 1 / 2;
+            }
+            .debt-item input[name*="-tasa"] {
+                grid-column: 2 / 3;
+            }
+            .debt-item input[name*="-term"] {
+                grid-column: 1 / 2;
+            }
             .debt-item input[name*="-pago"] {
-                grid-column: span 1;
+                grid-column: 2 / 3;
             }
             
             /* Actions row at the bottom of the stacked item */
@@ -286,6 +287,7 @@
                 padding-right: 0;
                 padding-left: 5px;
                 padding-bottom: 5px;
+                width: auto; /* Reset fixed width on mobile */
             }
 
             /* Adjust Totals Row for Mobile */
@@ -305,20 +307,21 @@
             }
              .total-row span:nth-child(2) /* Total Monto */
             {
-                text-align: left;
-                padding-left: 10px;
+                text-align: right;
+                padding-right: 10px;
             }
-            .total-row span:nth-child(4) /* Total Pago */
+            .total-row span:nth-child(5) /* Total Pago (now 5th item) */
             {
                 text-align: right;
                 padding-right: 10px;
             }
-            .total-row span:nth-child(3), .total-row span:nth-child(5) {
-                display: none; /* Hide Tasa column placeholder and final column */
+            /* Hide Tasa and Plazo columns on mobile total row */
+            .total-row span:nth-child(3), .total-row span:nth-child(4), .total-row span:nth-child(6) {
+                display: none; 
             }
         }
 
-        /* Tooltip Styling (Solid Color - FIX DEFINITIVO) */
+        /* Tooltip Styling (Solid Color) */
         .tooltip-container {
             position: relative;
             display: inline-block;
@@ -370,9 +373,11 @@
         
         /* Action Buttons within Debt Rows */
         .debt-actions {
+            /* FIX: Fixed width (50px) to prevent shift when '+' button disappears/appears */
+            width: 50px; 
             display: flex;
             gap: 5px;
-            justify-content: flex-end;
+            justify-content: space-between; 
             padding-right: 5px;
             height: 100%; 
             align-items: center; 
@@ -582,6 +587,8 @@
                             <input type="text" readonly class="debt-header-input header-label" value="Deuda">
                             <input type="text" readonly class="debt-header-input" value="Monto adeudado ($)">
                             <input type="text" readonly class="debt-header-input" value="Tasa / CAE (%)">
+                            <!-- NUEVA COLUMNA PLAZO -->
+                            <input type="text" readonly class="debt-header-input" value="Plazo (meses)">
                             <input type="text" readonly class="debt-header-input" value="Cuota mensual ($)">
                             <span></span> <!-- Actions placeholder -->
                         </div>
@@ -589,20 +596,20 @@
                         <div id="debt-items-container">
                             <!-- Debt items will be dynamically inserted here by JS -->
                         </div>
-                        
-                        <!-- Hidden input for default loan term (5 years / 60 months) used for PMT calculation -->
-                        <input type="hidden" id="loan_term_months" value="60"> 
                     </div>
 
                     <!-- Totals -->
                     <div class="debt-grid total-row" style="margin-top: 15px; font-weight: 600; color: var(--color-navy);">
                         <span style="text-align: left;">Totales</span>
-                        <!-- Totals Monto aligned right -->
+                        <!-- Monto (2) -->
                         <span id="kpi-total-deuda-monto-input" class="currency"></span>
-                        <span></span> <!-- Placeholder for Tasa -->
-                        <!-- Totals Pago aligned right -->
+                        <!-- Tasa (3) -->
+                        <span></span> 
+                        <!-- Plazo (4) -->
+                        <span></span>
+                        <!-- Pago (5) -->
                         <span id="kpi-total-deudas-pago-input" class="currency"></span>
-                        <span></span> <!-- Empty space for removed button -->
+                        <span></span> <!-- Empty space for removed button (6) -->
                     </div>
                 </form>
             </div>
@@ -669,7 +676,7 @@
     <script>
         // --- Global Configuration and Setup ---
         const FORM_ID = 'financial-form';
-        const STORAGE_KEY = 'financialSimulatorData_DebtOpt_V4'; 
+        const STORAGE_KEY = 'financialSimulatorData_DebtOpt_V5'; 
         
         // Initial data matching the provided spreadsheet example
         const initialData = {
@@ -677,18 +684,17 @@
             
             // Debts array structure: { name, monto, tasa, pago, term }
             debts: [
-                // Term is now calculated/assumed in the logic, but stored for completeness
-                { name: 'Tarjeta de crédito', monto: 500000, tasa: 30, pago: 27070, term: 24 },
-                { name: 'Crédito consumo', monto: 2000000, tasa: 18, pago: 70974, term: 36 },
-                { name: 'Crédito automotriz', monto: 6000000, tasa: 12, pago: 131614, term: 60 },
-                { name: '', monto: 0, tasa: 0, pago: 0, term: 60 } // Empty row 4
+                { name: 'Tarjeta de crédito', monto: 500000, tasa: 30, term: 24, pago: 0 },
+                { name: 'Crédito consumo', monto: 2000000, tasa: 18, term: 36, pago: 0 },
+                { name: 'Crédito automotriz', monto: 6000000, tasa: 12, term: 60, pago: 0 },
+                { name: '', monto: 0, tasa: 0, term: 60, pago: 0 } // Empty row 4
             ]
         };
 
         const form = document.getElementById(FORM_ID);
         const debtContainer = document.getElementById('debt-items-container');
         let currentData = { ...initialData };
-        // Default term for PMT calculation if not explicitly set (used when Monto/Tasa are changed)
+        // Default term is now only used for initialization of new rows
         const DEFAULT_TERM = 60; 
 
         // Define the formatter outside functions for global use (Chilean format)
@@ -712,7 +718,7 @@
                 value = value.replace(/[^\d.]/g, '');
                 value = value.replace(/^(\d*\.?\d*).*$/, (match, group1) => group1);
             } else {
-                // Monto, Ingreso, Pago only allow non-negative integers
+                // Monto, Ingreso, Plazo only allow non-negative integers (including zero)
                 value = value.replace(/[^0-9]/g, '');
             }
             
@@ -739,16 +745,29 @@
          * @returns {number} The periodic payment amount.
          */
         function calculatePayment(ratePercent, periods, presentValue) {
-            if (ratePercent <= 0 || periods <= 0 || presentValue <= 0) {
+            // If principal is zero, payment is zero regardless of rate/term.
+            if (presentValue <= 0) {
                 return 0;
             }
+            
+            // If term is zero, return 0 or handle as error (we return 0 for safe UI)
+            if (periods <= 0) {
+                return 0;
+            }
+
+            // CORRECTION: Handle 0% interest rate (CAE = 0)
+            if (ratePercent <= 0) {
+                // If 0% interest, payment is simply Principal / Term
+                return Math.ceil(presentValue / periods);
+            }
+
             // Convert annual rate percentage to monthly decimal rate
             const monthlyRate = (ratePercent / 100) / 12;
             
             // Standard PMT formula: P = [r * PV] / [1 - (1 + r)^(-n)]
             const payment = (monthlyRate * presentValue) / (1 - Math.pow(1 + monthlyRate, -periods));
             
-            // Round up to nearest peso (or handle rounding appropriately)
+            // Round up to nearest peso 
             return Math.ceil(payment);
         }
         
@@ -779,28 +798,26 @@
         function renderDebtRow(index, data, isLast) {
             const rowId = `debt-${index}`;
             
-            // Only the last row gets the ADD button
+            // The REMOVE button is always first (left)
+            const removeButton = `<button type="button" class="btn-row-action btn-remove" onclick="removeDebtRow(${index})" aria-label="Quitar fila de deuda">-</button>`;
+                
+            // The ADD button is only visible for the last row (right)
             const addButton = isLast ? 
                 `<button type="button" class="btn-row-action btn-add" onclick="addDebtRowAfter(${index})" aria-label="Agregar fila después">+</button>` : 
                 '';
-                
-            // All rows get the REMOVE button
-            const removeButton = `<button type="button" class="btn-row-action btn-remove" onclick="removeDebtRow(${index})" aria-label="Quitar fila de deuda">-</button>`;
-
+            
             // NOTE: The 'pago' input is now READONLY because it is calculated automatically
             const template = `
                 <div class="debt-grid debt-item" data-index="${index}" id="${rowId}">
                     <input type="text" name="deuda${index}-name" value="${data.name}" placeholder="Nombre de la deuda">
                     <input type="number" name="deuda${index}-monto" value="${data.monto}" min="0" step="1" class="debt-input" pattern="[0-9]*" placeholder="0">
                     <input type="number" name="deuda${index}-tasa" value="${data.tasa.toString().replace('.', ',')}" min="0" step="0.1" class="debt-input" placeholder="0,0">
+                    <input type="number" name="deuda${index}-term" value="${data.term}" min="0" step="1" class="debt-input" pattern="[0-9]*" placeholder="0"> <!-- NEW PLAZO INPUT -->
                     <input type="number" name="deuda${index}-pago" value="${data.pago}" min="0" step="1" class="debt-input" pattern="[0-9]*" placeholder="0" readonly>
                     
-                    <!-- Hidden input to hold the assumed term, used for PMT calculation -->
-                    <input type="hidden" name="deuda${index}-term" value="${data.term || DEFAULT_TERM}"> 
-
                     <div class="debt-actions">
-                        ${addButton}
                         ${removeButton}
+                        ${addButton}
                     </div>
                 </div>
             `;
@@ -811,7 +828,7 @@
          * Adds a new empty row to the debt table after a specific index.
          */
         function addDebtRowAfter(afterIndex) {
-            const newDebt = { name: '', monto: 0, tasa: 0, pago: 0, term: DEFAULT_TERM };
+            const newDebt = { name: '', monto: 0, tasa: 0, term: DEFAULT_TERM, pago: 0 };
             currentData.debts.splice(afterIndex + 1, 0, newDebt);
             
             // Re-render the entire list to update indices and button visibility
@@ -828,7 +845,7 @@
                 currentData.debts.splice(indexToRemove, 1);
             } else {
                 // If only one row remains, just clear its data instead of removing it
-                currentData.debts[0] = { name: '', monto: 0, tasa: 0, pago: 0, term: DEFAULT_TERM };
+                currentData.debts[0] = { name: '', monto: 0, tasa: 0, term: DEFAULT_TERM, pago: 0 };
             }
             
             // Re-render the entire list to correct indices and button visibility
@@ -873,17 +890,18 @@
                 const nameInput = row.querySelector(`input[name="deuda${index}-name"]`);
                 const montoInput = row.querySelector(`input[name="deuda${index}-monto"]`);
                 const tasaInput = row.querySelector(`input[name="deuda${index}-tasa"]`);
+                const termInput = row.querySelector(`input[name="deuda${index}-term"]`); // NEW TERM INPUT
                 const pagoInput = row.querySelector(`input[name="deuda${index}-pago"]`);
-                const termInput = row.querySelector(`input[name="deuda${index}-term"]`);
 
                 // Tasa must be converted from comma to dot for JS calculation
                 const rawTasa = tasaInput.value.replace(/,/g, '.');
                 
                 const monto = parseInt(montoInput.value) || 0;
                 const tasa = parseFloat(rawTasa) || 0;
-                const term = parseInt(termInput.value) || DEFAULT_TERM;
+                const term = parseInt(termInput.value) || 0; // Use input value for term
                 
                 // *** AUTOMATIC CALCULATION ***
+                // Payment calculation now uses the user-provided term
                 const calculatedPago = calculatePayment(tasa, term, monto);
                 pagoInput.value = calculatedPago; // Update the readonly input field
                 // *****************************
@@ -895,8 +913,8 @@
                     name: nameInput.value,
                     monto: monto,
                     tasa: tasa,
-                    pago: calculatedPago,
-                    term: term
+                    term: term,
+                    pago: calculatedPago
                 });
             });
             
